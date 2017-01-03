@@ -98,12 +98,12 @@ def e_load(fname, random_weights=False):
 
     return pos_dict, id_node_dict, node_layers, leaf_id_order, input_layers, input_orders, shuffle_layers, inds
 
-def e_build_random_net(bf, inp_size, out):
+def e_build_random_net(bf, inp_size, out, ctype='b'):
     count = 0
     total_net = []
     for i in range(out):
         init_node = SumNode(str(count))
-        network, count = generate_children([], init_node, range(inp_size), bf)
+        network, count = generate_children([], init_node, range(inp_size), bf, ctype=ctype)
         total_net += network
     network = total_net
     leaf_ids, prod_ids, sum_ids, id_node_dict = format_list_of_nodes(network)

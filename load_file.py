@@ -4,7 +4,7 @@ from nodes import *
 import random
 import numpy as np
 r = lambda x: 0.1 + random.random()*0.1
-def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=6):
+def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=4, ctype='c'):
     curr_id = int(curr_node.id) + 1
     if isinstance(curr_node, PrdNode):
         num_children = random.randint(bf[0][0], bf[0][1]) if depth > max_depth - 2 else len(scope)
@@ -22,7 +22,7 @@ def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=6):
         for c in xrange(len(scopes)):
             if len(scopes[c]) == 1:
                 a = random.random()
-                child = Leaf(str(curr_id+1), a, 1-a, scopes[c][0])
+                child = Leaf(str(curr_id+1), a, 1-a, scopes[c][0], t=ctype)
                 curr_node.children.append(str(curr_id + 1))
                 child.parents.append(curr_node.id)
                 curr_id += 1
@@ -31,7 +31,7 @@ def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=6):
                 child = SumNode(str(curr_id + 1))
                 child.parents.append(curr_node.id)
                 curr_node.children.append(str(curr_id + 1))
-                nodes, curr_id = generate_children(nodes, child, scopes[c], bf, depth+1, max_depth)
+                nodes, curr_id = generate_children(nodes, child, scopes[c], bf, depth+1, max_depth, ctype=ctype)
         nodes.append(curr_node)
         return nodes, curr_id+1
     else:
@@ -43,7 +43,7 @@ def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=6):
             curr_node.children.append(str(curr_id + 1))
             curr_node.weights.append(random.random() + 0.5)
             child.parents.append(curr_node.id)
-            nodes, curr_id = generate_children(nodes, child, scopes[c], bf, depth+1, max_depth)
+            nodes, curr_id = generate_children(nodes, child, scopes[c], bf, depth+1, max_depth, ctype=ctype)
         norm_factor = sum(curr_node.weights)
         curr_node.weights = map(lambda x: x/norm_factor, curr_node.weights)
         nodes.append(curr_node)

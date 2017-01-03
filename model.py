@@ -29,19 +29,19 @@ class Model:
         self.norm_value = 1.0
         self.counter_tensors = []
         self.weights = []
-	self.num_weights = 0
+        self.num_weights = 0
         self.counting = []
         self.updates = []
         self.sum_of_weights = []
+        self.labels = None
         self.norm_weights = []
-	self.num = None
-	self.step_size = 0.003
+        self.num = None
+        self.step_size = 0.003
         #Nodes loaded from files
         self.out_size = 1
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order = None, None, None, None, None, None
         self.cont = [0, 0]
         #For training and inference
-
         self.loss = None #loss function, None if uninitialized
         self.optimizer = optimizer
         self.optimizer2 = tf.train.AdamOptimizer
@@ -51,14 +51,16 @@ class Model:
         self.shuffle = None;
         self.reverse_shuffle = None;
         self.inds = None;
+        self.multiclass = False;
 
         #Do Work
 
     def build_model_from_file(self, fname, random_weights, mem=False):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order = load_file(fname, random_weights)
 
-    def build_random_model(self, bfactor, input_length, output_size=1):
-        self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_build_random_net(bfactor, input_length, output_size)
+    def build_random_model(self, bfactor, input_length, output_size=1, ctype='b', multiclass=False):
+        self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_build_random_net(bfactor, input_length, output_size, ctype)
+        self.multiclass=multiclass
 
     def build_fast_model(self, bfactor, input_length):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_load(bfactor, input_length)
@@ -167,8 +169,8 @@ class Model:
         # print sums_of_sparses
         
         with tf.name_scope('LEAFS_' + str(len(self.input_order))):
+            self.counting.append(self.input)
             if self.node_layers[0][0].t == 'b':
-               self.counting.append(self.input)
                input_computation_w = tf.mul(self.input, weights[0])
                input_computation_s = tf.transpose(tf.segment_sum(tf.transpose(input_computation_w), self.inds[0]))
                input_computation_n = tf.log(tf.div(input_computation_s, sum_of_weights[0]))
@@ -181,7 +183,7 @@ class Model:
                input_computation_n = tf.log(input_computation_g)
                computations.append(input_computation_n)
 
-            
+        
         #split the input computation and figure out which one goes in each layer
             j = 0
             for i in range(len(self.input_layers)):
@@ -198,7 +200,6 @@ class Model:
 # [66, 28, 560, 98, 186, 16, 1]
 # tests passed!
 
-        print "print shit"
         for i in range(len(self.node_layers[1:])):
             L = i+1 #the layer number
             # print current_computation.get_shape()
@@ -226,7 +227,11 @@ class Model:
 
         self.output = current_computation
         with tf.name_scope('loss'):
-            self.loss = -tf.reduce_mean(self.output, reduction_indices=0)
+            if self.multiclass:
+                self.labels = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
+                self.loss = -tf.reduce_mean(tf.mul(self.output, self.labels))
+            else:
+                self.loss = -tf.reduce_mean(self.output, reduction_indices=0)
             self.loss_summary = tf.scalar_summary(self.summ, self.loss)
         self.opt_val = self.optimizer(step).minimize(self.loss)
 #        self.opt_val2 = self.optimizer(0.001).minimize(self.loss)
@@ -237,13 +242,16 @@ class Model:
         val = tf.constant(0.501, dtype=tf.float64)
         t = lambda x: tf.transpose(x)
         for c in range(len(self.counting)):
-            maxes = tf.mul(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
-            back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[c*2]))
-            counts = tf.round(tf.div(back_maxes, self.counting[c]))
+            if c == 0 and self.node_layers[0][0].t == 'c':
+                counts = self.counting[c]*0
+            else:
+                maxes = tf.mul(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
+                back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[c*2]))
+                counts = tf.round(tf.div(back_maxes, self.counting[c]))
             maxed_out.append(counts)
         updates = []
         splits = []
-	self.num = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
+        self.num = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
         curr = self.num
         for i in reversed(range(len(self.node_layers[1:]))):
             L = i+1
@@ -259,34 +267,31 @@ class Model:
                 curr = tf.transpose(tf.gather(tf.transpose(curr), self.inds[L], name="mysumgather"))
                 curr = tf.mul(curr, maxed_out[L//2])
                 updates.append(tf.reduce_sum(curr, reduction_indices=0))
-                
-	print self.input_layers
-        print splits
-        print curr
-        print updates
-        inputs = tf.concat(1, [curr] + splits, name="lolface");
-        gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
-        updates.append(tf.reduce_sum(tf.mul(gathered, self.input), reduction_indices=0))
+        if self.node_layers[0][0].t == 'b':
+            inputs = tf.concat(1, [curr] + splits, name="lolface");
+            gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
+            updates.append(tf.reduce_sum(tf.mul(gathered, self.input), reduction_indices=0))
         self.updates = updates;
 
-    def apply_count(self, data, c=1):
-        updates = self.session.run(self.updates, {self.input: data, self.num:[[1.0]*self.out_size]*len(data)})
+    def apply_count(self, feed_dict, c=1):
+        updates = self.session.run(self.updates, feed_dict=feed_dict)
         # print map(lambda x: np.sum(x), updates)
         # print updates
-
+        if self.node_layers[0][0].t == 'c':
+            updates.append([0])
         weights = filter(lambda x: x.get_shape()[0] > 0, self.weights)
         for i in range(len(weights)):
+            if self.node_layers[0][0].t == 'c' and i == 0:
+                continue
             u, w = list(reversed(updates))[i], weights[i]
             z = tf.assign_add(w, u*c)
             self.session.run(z)
         # print updates
 
     def fast_compile(self, step):
-        print "print shit2"
         self.build_fast_variables()
-        print "print shit"
         self.build_fast_forward_pass(step)
-        #self.countss()
+        self.countss()
         self.out_size = len(self.node_layers[-1])
         self.start_session()
         self.writer = tf.train.SummaryWriter('logs/fast/try1', self.session.graph)

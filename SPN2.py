@@ -14,6 +14,7 @@ class SPN:
 		self.input_order = []
 		self.classify = False
 		self.continuous = False
+		self.out = 1
 
 	def reshape(self, data):
 		n_data = data
@@ -31,9 +32,15 @@ class SPN:
 		self.data = Data(self.model.input_order)
 		self.input_order = self.model.input_order
 
-	def make_random_model(self, bfactor, input_size, output=1, step=0.003):
+	def make_random_model(self, bfactor, input_size, output=1, step=0.003, cont=True, classify=False):
+		self.classify = classify
+		self.continuous = cont
 		self.model = Model()
-		self.model.build_random_model(bfactor, input_size, output)
+		self.out = output
+		ctype = 'b'
+		if cont:
+			ctype = 'c'
+		self.model.build_random_model(bfactor, input_size, output, ctype=ctype, multiclass=classify)
 		self.model.fast_compile(step)
 		self.data = Data(self.model.input_order)
 		self.input_order = self.model.input_order
@@ -74,11 +81,11 @@ class SPN:
 	def evaluate(self, inp, labels=None,summ="evaluation"):
 		if self.classify:
 			assert labels != None
-			feed_dict = {self.model.input: inp, self.model.summ: summ, self.model.labels: labels}
+			feed_dict = {self.model.input: self.reshape(inp), self.model.labels: labels}
 		else:
-			feed_dict = {self.model.input: inp, self.model.summ: summ}
-		loss, summ = self.model.session.run([self.model.loss, self.model.loss_summary], feed_dict=feed_dict)
-		return loss, summ
+			feed_dict = {self.model.input: self.reshape(inp)}
+		loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
+		return loss
 
 	def test(self, inp):
 		feed_dict = {self.model.input: inp}
@@ -86,10 +93,12 @@ class SPN:
 		print vals
 		return vals;
 
-	def train(self, epochs, data=[], minibatch_size=512, valid=False, test=False, gd=True, count=False):
+	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid=False, test=False, gd=True, count=False):
 		if data == []:
 			data = self.data.train
 			print data.shape
+		if self.classify:
+			assert labels != []
 		# if (valid):	
 		# 	val_loss, val_sum = self.evaluate(self.data.valid.T, 'valid_loss')
 		# 	self.model.writer.add_summary(val_sum, 0)
@@ -110,15 +119,19 @@ class SPN:
 			ms = minibatch_size
 			for i in range(1+(len(data)-1)//ms):
 				b = min(len(data), a + ms)
+				n_data = self.reshape(data[a:b])
+				if self.classify:
+					feed_dict = {self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+				else:
+					feed_dict = {self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}
 				if (a == b):
 					break
-				n_data = self.reshape(data[a:b])
 				loss = 0
 				if count:
-					self.model.apply_count(n_data, 1.0)
-					loss = self.model.session.run([self.model.loss], feed_dict = {self.model.input: n_data})
+					self.model.apply_count(feed_dict, 1.0)
+					loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				if gd:
-					_, loss = self.model.session.run([self.model.opt_val, self.model.loss], feed_dict = {self.model.input: n_data})
+					_, loss = self.model.session.run([self.model.opt_val, self.model.loss], feed_dict = feed_dict)
 				a += ms
 			print loss 
 			# np.random.shuffle(data)
