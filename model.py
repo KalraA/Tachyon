@@ -211,17 +211,17 @@ class Model:
                 current_computation = tf.transpose(tf.segment_sum(tf.transpose(current_computation), self.inds[L]))
                
             else:
-		self.counting.append(current_computation)
+                self.counting.append(current_computation)
                 maxes = tf.transpose(tf.segment_max(tf.transpose(current_computation), self.inds[L]))
                 back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[L]))
-		current_computation = tf.sub(current_computation, back_maxes)
-		current_computation = tf.exp(current_computation)
-		current_computation = tf.mul(current_computation, weights[L])
+                current_computation = tf.sub(current_computation, back_maxes)
+                current_computation = tf.exp(current_computation)
+                current_computation = tf.mul(current_computation, weights[L])
                 current_computation = tf.transpose(tf.segment_sum(tf.transpose(current_computation), self.inds[L]))
                 current_computation = tf.div(current_computation, sum_of_weights[L])
-		current_computation = tf.add(tf.log(current_computation), maxes)
+                current_computation = tf.add(tf.log(current_computation), maxes)
                 current_computation = tf.concat(1, [current_computation, input_splits[L]])
-                current_computation = tf.transpose(tf.gather(tf.transpose(current_computation), self.shuffle[L]))
+            current_computation = tf.transpose(tf.gather(tf.transpose(current_computation), self.shuffle[L]))
                
             computations.append(current_computation)
 

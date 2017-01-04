@@ -18,7 +18,7 @@ valid_losses = []
 test_loss = 0
 my_spn = SPN()
 pbf = (50, 90)
-sbf = (9, 13)
+sbf = (4, 5)
 depth = 6
 if cf == 0 and step == 0:
 	print "oops"
@@ -26,7 +26,7 @@ if cf == 0 and step == 0:
 var_num = int(sys.argv[3])
 
 #my_spn.make_fast_model_from_file('../Modelz/' + mn +'.spn.txt', random_weights=True, step=step)
-my_spn.make_random_model((pbf, sbf), var_num, 2, cont=True, classify=True)#step=step)
+my_spn.make_random_model((pbf, sbf), var_num, 2, cont=False, classify=True)#step=step)
 # my_spn.continuous = True
 my_spn.start_session()
 my_size = len(my_spn.model.id_node_dict) + len(my_spn.model.input_order)

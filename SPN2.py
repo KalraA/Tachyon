@@ -118,6 +118,7 @@ class SPN:
 
 			ms = minibatch_size
 			for i in range(1+(len(data)-1)//ms):
+				print i+1, "/", 1+(len(data)-1)//ms
 				b = min(len(data), a + ms)
 				n_data = self.reshape(data[a:b])
 				if self.classify:
