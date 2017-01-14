@@ -4,7 +4,8 @@ from nodes import *
 import random
 import numpy as np
 r = lambda x: 0.1 + random.random()*0.1
-def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=4, ctype='c'):
+def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=2, ctype='c'):
+ 
     curr_id = int(curr_node.id) + 1
     if isinstance(curr_node, PrdNode):
         num_children = random.randint(bf[0][0], bf[0][1]) if depth > max_depth - 2 else len(scope)
@@ -41,7 +42,7 @@ def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=4, ctype='
         for c in xrange(len(scopes)):
             child = PrdNode(str(curr_id + 1))
             curr_node.children.append(str(curr_id + 1))
-            curr_node.weights.append(random.random() + 0.5)
+            curr_node.weights.append(random.random() - 0.5)
             child.parents.append(curr_node.id)
             nodes, curr_id = generate_children(nodes, child, scopes[c], bf, depth+1, max_depth, ctype=ctype)
         norm_factor = sum(curr_node.weights)

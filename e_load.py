@@ -104,20 +104,20 @@ def e_load(fname, random_weights=False):
 def e_build_random_net(bf, inp_size, out, ctype='b'):
     count = 0
     total_net = []
-    # for i in range(out):
-    init_node = SumNode(str(count))
+#    for i in range(out):
+    init_node = SumNode(str(count + 1))
     network, count = generate_children([], init_node, range(inp_size), bf, ctype=ctype)
     extras = []
     for i in range(1, out):
         node = SumNode(str(count + i))
         node.children = copy.copy(init_node.children)
-        node.weights = copy.copy(init_node.weights)
+        node.weights = [x + random.random()*0.3 - 0.15 for x in copy.copy(init_node.weights)]
         extras.append(node)
         network.append(node)
     leaf_ids, prod_ids, sum_ids, id_node_dict = format_list_of_nodes(network)
     for e in extras:
         for c in e.children:
-            id_node_dict[c].parents.append(e.id)
+             id_node_dict[c].parents.append(e.id)
     #print len(id_node_dict)
     #determine all the ranks for each node
     rank, id_node_dict = add_ranks(id_node_dict, leaf_ids)
@@ -141,8 +141,8 @@ def e_build_random_net(bf, inp_size, out, ctype='b'):
         temp += [x + i for x in inds[-2]]
     inds[-2] = temp
 
-    print inds 
-    print shuffle_layers
+#    print inds 
+#    print shuffle_layers
     #getting the ordering right
     leaf_id_order, input_layers, input_orders = clean_up_inputs(node_layers)
     print "generated a network of size", len(id_node_dict), "with", len(node_layers) ,"layers."

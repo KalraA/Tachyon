@@ -125,9 +125,9 @@ class Model:
             weights.append(tf.Variable(ws, dtype=tf.float64))
         self.weights = weights;
         self.reverse_shuffle = self.build_reverse_shuffle(self.shuffle)
-        self.inds = map(lambda x: tf.constant(x), [input_inds]+self.inds)
-        self.shuffle = map(lambda x: tf.constant(x), self.shuffle)
-        self.reverse_shuffle = map(lambda x: tf.constant(x), self.reverse_shuffle)
+        self.inds = map(lambda x: tf.Variable(x), [input_inds]+self.inds)
+        self.shuffle = map(lambda x: tf.Variable(x), self.shuffle)
+        self.reverse_shuffle = map(lambda x: tf.Variable(x), self.reverse_shuffle)
         # self.input_layers = map(lambda x: [0] + tf.constant(x), self.input_layers)
 
     def get_norm_weights(self):
@@ -150,7 +150,7 @@ class Model:
         if self.node_layers[0][0].t == 'b':
             bob = 2
         self.input = tf.placeholder(dtype=tf.float64, 
-                                         shape=(None, len(self.input_order)*bob), name='Input')
+                                         shape=(1000, len(self.input_order)*bob), name='Input')
         # self.input = tf.placeholder(dtype=tf.float64, 
         #                                  shape=(len(self.input_order)*2), name='Input')
         #the input to be appended to each layer
@@ -178,7 +178,7 @@ class Model:
             else:
                pi = tf.constant(np.pi, tf.float64)
                mus = self.cont[0]
-               sigs = tf.nn.relu(self.cont[1] - 0.4) + 0.4
+               sigs = tf.nn.relu(self.cont[1] - 0.1) + 0.1
                input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(self.input - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs)
                input_computation_n = tf.log(input_computation_g)
                computations.append(input_computation_n)
@@ -228,8 +228,8 @@ class Model:
         self.output = current_computation
         with tf.name_scope('loss'):
             if self.multiclass:
-                self.labels = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
-                self.loss = -tf.reduce_mean(tf.mul(self.output, self.labels))
+                self.labels = tf.placeholder(shape=(1000, len(self.node_layers[-1])), dtype=tf.float64)
+                self.loss = -tf.reduce_mean(tf.mul(self.output, 0.1*(self.labels-1)+self.labels))
             else:
                 self.loss = -tf.reduce_mean(self.output, reduction_indices=0)
             self.loss_summary = tf.scalar_summary(self.summ, self.loss)
@@ -251,7 +251,7 @@ class Model:
             maxed_out.append(counts)
         updates = []
         splits = []
-        self.num = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
+        self.num = tf.placeholder(shape=(1000, len(self.node_layers[-1])), dtype=tf.float64)
         curr = self.num
         for i in reversed(range(len(self.node_layers[1:]))):
             L = i+1
