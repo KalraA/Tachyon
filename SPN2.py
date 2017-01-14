@@ -117,9 +117,10 @@ class SPN:
 			for i in range(1+(len(data)-1)//ms):
 				print i+1, "/", 1+(len(data)-1)//ms
 				b = min(len(data), a + ms)
-				n_data = self.reshape(data[a:b])
+				n_data = data[a:b]#self.reshape(data[a:b])
+				print n_data.shape
 				if self.classify:
-                                        #print np.argmax(labels[a:b], axis=1)
+                                        #print np.argmax(labels[a:b], axis=1
 					feed_dict = {self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
 				else:
 					feed_dict = {self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}

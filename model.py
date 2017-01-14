@@ -18,6 +18,7 @@ class Model:
         #currently doesn't allow you to build custom SPNs
 
         #Tensorflow Graph Variables
+        self.input_swap = None
         self.summ = tf.placeholder(dtype=tf.string, shape=());
         self.loss_summary = None;
         self.writer = None;
@@ -102,6 +103,7 @@ class Model:
         return reverse_shuffle
 
     def build_fast_variables(self):
+        self.input_swap = tf.Variable(self.input_order)
         weights = []
         if self.node_layers[0][0].t != 'b':
              self.cont[0] = tf.Variable([0.5 + random.random()*0.3 - 0.15 for x in self.leaf_id_order], dtype=tf.float64)
@@ -149,8 +151,9 @@ class Model:
         bob = 1
         if self.node_layers[0][0].t == 'b':
             bob = 2
+        print bob
         self.input = tf.placeholder(dtype=tf.float64, 
-                                         shape=(1000, len(self.input_order)*bob), name='Input')
+                                         shape=(1000, 16, bob), name='Input')
         # self.input = tf.placeholder(dtype=tf.float64, 
         #                                  shape=(len(self.input_order)*2), name='Input')
         #the input to be appended to each layer
@@ -169,9 +172,11 @@ class Model:
         # print sums_of_sparses
         
         with tf.name_scope('LEAFS_' + str(len(self.input_order))):
-            self.counting.append(self.input)
+            print len(self.input_order)
+            input_gather = tf.reshape(tf.gather(tf.transpose(self.input, (1, 0, 2)), self.input_swap), shape=(1000, len(self.input_order)*bob))
+            self.counting.append(input_gather)
             if self.node_layers[0][0].t == 'b':
-               input_computation_w = tf.mul(self.input, weights[0])
+               input_computation_w = tf.mul(input_gather, weights[0])
                input_computation_s = tf.transpose(tf.segment_sum(tf.transpose(input_computation_w), self.inds[0]))
                input_computation_n = tf.log(tf.div(input_computation_s, sum_of_weights[0]))
                computations.append(input_computation_n)
@@ -179,7 +184,7 @@ class Model:
                pi = tf.constant(np.pi, tf.float64)
                mus = self.cont[0]
                sigs = tf.nn.relu(self.cont[1] - 0.1) + 0.1
-               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(self.input - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs)
+               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs)
                input_computation_n = tf.log(input_computation_g)
                computations.append(input_computation_n)
 
@@ -270,7 +275,7 @@ class Model:
         if self.node_layers[0][0].t == 'b':
             inputs = tf.concat(1, [curr] + splits, name="lolface");
             gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
-            updates.append(tf.reduce_sum(tf.mul(gathered, self.input), reduction_indices=0))
+            updates.append(tf.reduce_sum(tf.mul(gathered, self.counting[0]), reduction_indices=0))
         self.updates = updates;
 
     def apply_count(self, feed_dict, c=1):
