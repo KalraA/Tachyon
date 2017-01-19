@@ -16,7 +16,7 @@ class Data:
             i = D.readline()
             if i == '':
                 break;
-            Data.append(([[int(x), 0] if int(x) == 1 else [int(x), 1] for x in i.split(',')]))
+            Data.append(([[float(x), 0] if float(x) == 1.0 else [float(x), 1] for x in i.split(',')]))
         return np.array(Data)
 
     def load_and_process_train_data(self, fname):

@@ -17,8 +17,8 @@ r = 2
 valid_losses = []
 test_loss = 0
 my_spn = SPN()
-pbf = (50, 90)
-sbf = (4, 5)
+pbf = (2, 4)
+sbf = (5, 8)
 depth = 6
 if cf == 0 and step == 0:
 	print "oops"
@@ -26,7 +26,7 @@ if cf == 0 and step == 0:
 var_num = int(sys.argv[3])
 
 #my_spn.make_fast_model_from_file('../Modelz/' + mn +'.spn.txt', random_weights=True, step=step)
-my_spn.make_random_model((pbf, sbf), var_num, 2, cont=False, classify=True)#step=step)
+my_spn.make_random_model((pbf, sbf), var_num, 1, cont=True, classify=False)#step=step)
 # my_spn.continuous = True
 my_spn.start_session()
 my_size = len(my_spn.model.id_node_dict) + len(my_spn.model.input_order)
@@ -62,7 +62,8 @@ print start
 
 labels_train = np.array([[1.0, 0.0]]*len(my_spn.data.train))
 labels_test = np.array([[1.0, 0.0]]*len(my_spn.data.test))
-my_spn.train(1, data=my_spn.data.train, labels=labels_train, count=True)
+my_spn.train(1, data=my_spn.data.train, minibatch_size=m_start ,count=False, gd=True)
+# my_spn.train(1, data=my_spn.data.train, minibatch_size=m_start, count=False, gd=True)
 
 end = time.time() - start;
 print time.time()
@@ -70,12 +71,13 @@ print "total time: " + str(end)
 
 
 total_loss = 0.0
-ms = 512
+ms = 1000
 a = 0
 b = 0
 for i in range(1+(len(my_spn.data.test)-1)//ms):
 	print i + 1, '/', 1+(len(my_spn.data.test)-1)//ms
 	b = min((i+1)*ms, len(my_spn.data.test))
+	a = i*ms
 	if a == b:
 		break;
 	test_loss = my_spn.evaluate(my_spn.data.test[a:b], labels_test[a:b])[0]

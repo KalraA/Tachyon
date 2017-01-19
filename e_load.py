@@ -75,11 +75,11 @@ def e_make_pos_dict(node_layers):
             new_dict[node_layers[i][j].id] = (i, j)
     return new_dict, node_layers
 
-def e_load(fname, random_weights=False):
+def e_load(fname, random_weights=False, ctype="b"):
     #get the node and edge strings from a file
     file_nodes, file_edges = split_up_file(fname)
     #get all the different nodes and a dict that matches id to node
-    leaf_ids, prod_ids, sum_ids, id_node_dict = build_nodes(file_nodes, random_weights)
+    leaf_ids, prod_ids, sum_ids, id_node_dict = build_nodes(file_nodes, random_weights, ctype)
     #add all the edges to the nodes
     id_node_dict = add_connections(id_node_dict, file_edges, random_weights)
     if random_weights:

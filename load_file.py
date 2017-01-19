@@ -4,7 +4,7 @@ from nodes import *
 import random
 import numpy as np
 r = lambda x: 0.1 + random.random()*0.1
-def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=2, ctype='c'):
+def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=10, ctype='c'):
  
     curr_id = int(curr_node.id) + 1
     if isinstance(curr_node, PrdNode):
@@ -68,7 +68,7 @@ def split_up_file(fname):
     edges = lines[n+1:]
     return nodes, edges
 
-def build_nodes(nodes, random_weights=False):
+def build_nodes(nodes, random_weights=False, ctype="b"):
     big_dict = {}
     Leaves = []
     Prods = []
@@ -89,7 +89,7 @@ def build_nodes(nodes, random_weights=False):
             if random_weights:
                 arr[3] = r(1)
                 arr[4] = r(1)
-            node = Leaf(arr[0], arr[4], arr[3], arr[2])
+            node = Leaf(arr[0], arr[4], arr[3], arr[2], t=ctype)
             big_dict[arr[0]] = node
             Leaves.append(arr[0])
     return Leaves, Prods, Sums, big_dict

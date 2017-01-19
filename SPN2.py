@@ -45,9 +45,14 @@ class SPN:
 		self.data = Data(self.model.input_order)
 		self.input_order = self.model.input_order
 
-	def make_fast_model_from_file(self, fname, random_weights=False, step=0.003):
+	def make_fast_model_from_file(self, fname, random_weights=False, step=0.003, cont=True, classify=False):
 		self.model = Model()
-		self.model.build_fast_model(fname, random_weights)
+		self.classify = classify
+		self.continuous = cont
+		ctype = 'b'
+		if cont:
+			ctype = 'c'
+		self.model.build_fast_model(fname, random_weights, ctype=ctype)
 		self.model.fast_compile(step)
 		self.data = Data(self.model.input_order)
 		self.input_order = self.model.input_order
@@ -78,14 +83,27 @@ class SPN:
 		output = self.model.session.run(self.model.output, feed_dict=feed_dict)
 		return output
 
-	def evaluate(self, inp, labels=None,summ="evaluation"):
-		if self.classify:
-			assert labels != None
-			feed_dict = {self.model.input: self.reshape(inp), self.model.labels: labels}
-		else:
-			feed_dict = {self.model.input: self.reshape(inp)}
-		loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
-		return loss
+	def evaluate(self, data, labels=None,summ="evaluation", minibatch_size=1000):
+		ms = minibatch_size
+		tot_loss = 0
+		a = 0
+		b = 0
+		for i in range(1+(len(data)-1)//ms):
+			print i+1, "/", 1+(len(data)-1)//ms
+			b = min(len(data), a + ms)
+			n_data = data[a:b, :, :]#
+			if self.classify:
+                                    #print np.argmax(labels[a:b], axis=1
+				feed_dict = {self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+			else:
+				feed_dict = {self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}
+			if (a == b):
+				break
+			loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
+			tot_loss += (b-a)*np.sum(loss)
+			a += ms
+		tot_loss /= float(len(data))
+		return tot_loss
 
 	def test(self, inp):
 		feed_dict = {self.model.input: inp}
@@ -113,12 +131,12 @@ class SPN:
 			a = 0
 			b = 0
 			print 'Epoch ' + str(e)
+			tot_loss = 0
 			ms = minibatch_size
 			for i in range(1+(len(data)-1)//ms):
 				print i+1, "/", 1+(len(data)-1)//ms
 				b = min(len(data), a + ms)
-				n_data = data[a:b]#self.reshape(data[a:b])
-				print n_data.shape
+				n_data = data[a:b, :, :]#
 				if self.classify:
                                         #print np.argmax(labels[a:b], axis=1
 					feed_dict = {self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
@@ -126,14 +144,15 @@ class SPN:
 					feed_dict = {self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}
 				if (a == b):
 					break
-				loss = 0
 				if count:
 					self.model.apply_count(feed_dict, 1.0)
 					loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				if gd:
 					_, loss = self.model.session.run([self.model.opt_val, self.model.loss], feed_dict = feed_dict)
+				tot_loss += (b-a)*loss
 				a += ms
-			print loss 
+			tot_loss /= float(len(data))
+			print tot_loss
 			# np.random.shuffle(data)
 			# for m in xrange(data.shape[0]//minibatch_size+1):
 			# 	n_data = data[m*minibatch_size:min(data.shape[0], (m+1)*minibatch_size)]
