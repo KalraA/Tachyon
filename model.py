@@ -37,7 +37,7 @@ class Model:
         self.labels = None
         self.norm_weights = []
         self.num = None
-        self.step_size = 0.003
+        self.step_size = 0.01
         #Nodes loaded from files
         self.out_size = 1
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order = None, None, None, None, None, None
@@ -90,7 +90,6 @@ class Model:
             ws.append(b)
             inds.append(i)
             inds.append(i)
-        # print inds
         return tf.Variable(ws, dtype=tf.float64), inds
 
     def build_reverse_shuffle(self, shuffle):
@@ -164,15 +163,11 @@ class Model:
             if isinstance(self.node_layers[L][0], SumNode):
                 i = 0;
                 j = 0;
-               # print i
-               # print self.node_layers[L]
                 while i < len(self.node_layers[L]) and isinstance(self.node_layers[L][i], SumNode):
                     ws += map(lambda x: float(x), self.node_layers[L][i].weights);
 
-                 #   print self.inds[L-1][j:j+len(self.node_layers[L][i].weights)]
                     j += len(self.node_layers[L][i].weights)
                     i += 1;
-            #print ws
             weights.append(tf.Variable(ws, dtype=tf.float64))
         self.weights = weights;
         self.reverse_shuffle = self.build_reverse_shuffle(self.shuffle)
@@ -202,7 +197,7 @@ class Model:
             bob = 2
         print bob
         self.input = tf.placeholder(dtype=tf.float64, 
-                                         shape=(None, 16, bob), name='Input')
+                                         shape=(None, max(self.input_order)+1, bob), name='Input')
         # self.input = tf.placeholder(dtype=tf.float64, 
         #                                  shape=(len(self.input_order)*2), name='Input')
         #the input to be appended to each layer
@@ -285,13 +280,13 @@ class Model:
             else:
                 self.loss = -tf.reduce_mean(self.output)
             self.loss_summary = tf.scalar_summary(self.summ, self.loss)
-        self.opt_val = self.optimizer(step).minimize(self.loss)
+        self.opt_val = self.optimizer(0.001).minimize(self.loss)
 #        self.opt_val2 = self.optimizer(0.001).minimize(self.loss)
         self.computations = computations
 
     def countss(self):
         maxed_out = []
-        val = tf.constant(0.5, dtype=tf.float64)
+        val = tf.constant(0.51, dtype=tf.float64)
         t = lambda x: tf.transpose(x)
         for c in range(len(self.counting)):
             if c == 0 and self.node_layers[0][0].t == 'c':
@@ -343,6 +338,7 @@ class Model:
         # print updates
         a=0
         weights = filter(lambda x: x.get_shape()[0] > 0, self.weights)
+        print [np.sum(x) for x in weights]
         updates = list(reversed(updates))
         for i in range(len(weights)):
             if self.node_layers[0][0].t == 'c' and i == 0:
@@ -352,9 +348,9 @@ class Model:
                 a = 2
                 continue
             u, w = updates[i+a], weights[i]
-            z = tf.assign_add(w, u*c)
-            self.session.run(z)
-        # print updates
+            z = tf.assign_add(w, u)
+            self.session.run(z)      
+ # print updates
 
     def fast_compile(self, step):
         self.build_fast_variables()

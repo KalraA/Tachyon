@@ -111,7 +111,7 @@ class SPN:
 		print vals
 		return vals;
 
-	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid=False, test=False, gd=True, count=False):
+	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid=False, test=False, gd=True, count=False, ngd=1):
 		if data == []:
 			data = self.data.train
 			print data.shape
@@ -148,8 +148,9 @@ class SPN:
 					self.model.apply_count(feed_dict, 1.0)
 					loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				if gd:
-					_, loss = self.model.session.run([self.model.opt_val, self.model.loss], feed_dict = feed_dict)
-				tot_loss += (b-a)*loss
+                			for i in range(ngd):
+						_, loss = self.model.session.run([self.model.opt_val, self.model.loss], feed_dict = feed_dict)
+				tot_loss += (b-a)*np.mean(loss)
 				a += ms
 			tot_loss /= float(len(data))
 			print tot_loss
