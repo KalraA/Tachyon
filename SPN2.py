@@ -141,15 +141,16 @@ class SPN:
                                         #print np.argmax(labels[a:b], axis=1
 					feed_dict = {self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
 				else:
-					feed_dict = {self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}
+					feed_dict = {self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a)}
 				if (a == b):
 					break
 				if count:
-					self.model.apply_count(feed_dict, 1.0)
+					self.model.apply_cccp(feed_dict)
 					loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				if gd:
 					_, loss = self.model.session.run([self.model.opt_val, self.model.loss], feed_dict = feed_dict)
-				tot_loss += (b-a)*loss
+				print loss
+				tot_loss += (b-a)*np.mean(loss)
 				a += ms
 			tot_loss /= float(len(data))
 			print tot_loss

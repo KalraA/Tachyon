@@ -53,7 +53,7 @@ class Model:
         self.reverse_shuffle = None;
         self.inds = None;
         self.multiclass = False;
-
+        self.cccp_updates = []
         #Do Work
 
     def build_model_from_file(self, fname, random_weights, mem=False):
@@ -202,7 +202,7 @@ class Model:
             bob = 2
         print bob
         self.input = tf.placeholder(dtype=tf.float64, 
-                                         shape=(None, 16, bob), name='Input')
+                                         shape=(None, 69, bob), name='Input')
         # self.input = tf.placeholder(dtype=tf.float64, 
         #                                  shape=(len(self.input_order)*2), name='Input')
         #the input to be appended to each layer
@@ -210,7 +210,7 @@ class Model:
         #compute the input
         weights = []
         for L in range(len(self.weights)):
-            n = tf.constant(0.000001, dtype=tf.float64)
+            n = tf.constant(0.0001, dtype=tf.float64)
             weights.append(tf.add(tf.nn.relu(tf.sub(self.weights[L], n)), n))
 
         with tf.name_scope('NORM_FACTOR'):
@@ -263,7 +263,7 @@ class Model:
                 current_computation = tf.transpose(tf.segment_sum(tf.transpose(current_computation), self.inds[L]))
                
             else:
-                self.counting.append(current_computation - 10)
+                self.counting.append(current_computation)
                 maxes = tf.transpose(tf.segment_max(tf.transpose(current_computation), self.inds[L]))
                 back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[L]))
                 current_computation = tf.sub(current_computation, back_maxes)
@@ -289,6 +289,53 @@ class Model:
 #        self.opt_val2 = self.optimizer(0.001).minimize(self.loss)
         self.computations = computations
 
+    def cccp(self):
+        updates =  []
+        splits = []
+        self.num = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
+        curr = self.num
+        for i in reversed(range(len(self.node_layers[1:]))):
+            L = i+1
+            if self.weights[L].get_shape()[0] == 0: #product node
+                curr = tf.transpose(tf.gather(tf.transpose(curr), self.inds[L], name="myprodgather"))
+                factored_comp = tf.transpose(tf.gather(tf.transpose(self.computations[L]), self.inds[L]))
+                curr = curr + factored_comp - self.computations[i][:, :curr.get_shape()[1]]
+              #  print "prd"
+            else: #sum node
+              #  print "sum"
+                curr = tf.transpose(tf.gather(tf.transpose(curr), self.reverse_shuffle[L]))
+                if (self.input_layers[L] > 0):
+                    curr, split = curr[:, :-self.input_layers[L]], curr[:, -self.input_layers[L]:]
+                    splits = [split] + splits;
+                curr = tf.transpose(tf.gather(tf.transpose(curr), self.inds[L], name="mysumgather"))
+                update = self.weights[L]*tf.exp(curr - self.computations[-1] + self.computations[i])
+                curr = curr + tf.log(tf.Print(self.weights[L], [self.weights[L]]))
+                updates.append(tf.reduce_sum(update, reduction_indices=0))
+        inputs = tf.concat(1, [curr] + splits, name="lolface");
+        if self.node_layers[0][0].t == 'b':
+            gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
+            update = self.weights[0]*tf.exp(gathered - self.computations[-1])*self.counting[0]+0.000001
+            updates.append(tf.reduce_sum(update, reduction_indices=0))
+        self.cccp_updates = updates
+
+    def apply_cccp(self, feed_dict):
+        updates = self.session.run(self.cccp_updates, feed_dict=feed_dict)
+        # print updates
+        a=0
+        weights = filter(lambda x: x.get_shape()[0] > 0, self.weights)
+        updates = list(reversed(updates))
+        for i in range(len(weights)):
+            if self.node_layers[0][0].t == 'c' and i == 0:
+                for j in range(3):
+                    z = tf.assign(self.cont[-j-1], updates[i+j])
+                    self.session.run(z)
+                a = 2
+                continue
+            u, w = updates[i+a], weights[i]
+            z = tf.assign(w, u)
+            self.session.run(z)
+        self.normalize_weights()       
+
     def countss(self):
         maxed_out = []
         val = tf.constant(0.5, dtype=tf.float64)
@@ -303,8 +350,8 @@ class Model:
             maxed_out.append(counts)
         updates = []
         splits = []
-        self.num = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
-        curr = self.num
+        self.num2 = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
+        curr = self.num2
         for i in reversed(range(len(self.node_layers[1:]))):
             L = i+1
             if self.weights[L].get_shape()[0] == 0: #product node
@@ -360,6 +407,7 @@ class Model:
         self.build_fast_variables()
         self.build_fast_forward_pass(step)
         self.countss()
+        self.cccp()
         self.out_size = len(self.node_layers[-1])
         self.start_session()
         self.writer = tf.train.SummaryWriter('logs/fast/try1', self.session.graph)
