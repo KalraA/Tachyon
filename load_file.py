@@ -84,7 +84,7 @@ def build_nodes(nodes, random_weights=False, ctype="b"):
             node = SumNode(arr[0])
             big_dict[arr[0]] = node
             Sums.append(arr[0])
-        elif 'LEAVE' in l:
+        elif 'LEAVE' in l or 'BINN' in l:
             arr = l.split(',')
             if random_weights:
                 arr[3] = r(1)
