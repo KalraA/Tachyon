@@ -9,15 +9,19 @@ class SumNode:
         self.rank = 0
         self.TRank = 0
         self.alive = 1
-
+	self.flags = []
     def dead_children(self, thresh=0):
         a = []
+	flags = [0]*len(self.weights)
+	for f in self.flags:
+		flags[f] = 1
         weights = np.array(self.weights)
         weights /= np.sum(weights)
         new_children = []
         new_weights = []
-        for c, nw, w in zip(self.children, weights, self.weights):
-            if nw > 0.01:
+        print flags
+        for c, nw, w in zip(self.children, flags, self.weights):
+            if nw < 0.01:
                 new_children.append(c)
                 new_weights.append(w)
             else:

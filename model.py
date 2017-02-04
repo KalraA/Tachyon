@@ -109,7 +109,9 @@ class Model:
                 j = 0
                 while i < len(self.node_layers[L]) and isinstance(self.node_layers[L][i], SumNode):
                     for p in range(len(self.node_layers[L][i].weights)):
-                        self.id_node_dict[self.node_layers[L][i].id].weights[p] = weights[L][j+p]
+                        if self.id_node_dict[self.node_layers[L][i].id].weights[p] == weights[L][j+p]:
+			    self.id_node_dict[self.node_layers[L][i].id].flags.append(p)
+			self.id_node_dict[self.node_layers[L][i].id].weights[p] = weights[L][j+p]
                     j += len(self.node_layers[L][i].weights)
                     i += 1
 

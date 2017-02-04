@@ -117,7 +117,7 @@ class SPN:
 		print vals
 		return vals;
 
-	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], test=False, gd=True, count=False, cccp=False, patience=100, summ=True):
+	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], test=False, gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True):
 		if data == []:
 			data = self.data.train
 			print data.shape
@@ -139,7 +139,7 @@ class SPN:
 		if summ:
 			val_sum = "valid"
 		if valid:
-			prev_valid = self.evaluate(valid_data, summ=val_sum, minibatch_size=minibatch_size ,epoch=0)
+			prev_valid = self.evaluate(valid_data, summ=val_sum, minibatch_size=compute_size, epoch=0)
 		history = dict(train_loss=[], valid_loss=[])
 		for e in xrange(epochs):
 			a = 0
@@ -158,13 +158,13 @@ class SPN:
 				if (a == b):
 					break
 				if cccp:
-					self.model.apply_cccp(feed_dict)
+					self.model.apply_cccp(feed_dict, compute_size=compute_size)
 				if count:
-					self.model.apply_count(feed_dict)
+					self.model.apply_count(feed_dict, compute_size=compute_size)
 				if gd:
 					_ = self.model.session.run([self.model.opt_val], feed_dict = feed_dict)
-				if not summ:
-					loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
+				if not summ or True:
+					loss = 0#self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				else:
 					feed_dict[self.model.summ] = "batch_loss"
 					summary, loss = self.model.session.run([self.model.loss_summary, self.model.loss], feed_dict=feed_dict)
@@ -176,7 +176,7 @@ class SPN:
 			print tot_loss
 			history["train_loss"].append(tot_loss)
 			if valid:
-				valid_loss = self.evaluate(valid_data, summ="valid", minibatch_size=minibatch_size ,epoch=e+1)
+				valid_loss = self.evaluate(valid_data, summ="valid", minibatch_size=compute_size ,epoch=e+1)
 				history["valid_loss"] = valid_loss
 				print valid_loss
 				if valid_loss > prev_valid:

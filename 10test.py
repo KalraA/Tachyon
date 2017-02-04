@@ -10,7 +10,7 @@ step = sys.argv[5]
 gd = sys.argv[6]
 cccp = sys.argv[7]
 
-for i in range(3, 10):
- os.system("python run.py " + name + str(i) + " " + dataset  + " " + batch_size + " " + compute_size + " " + step + " " + gd + " " + cccp)
+for i in range(0, 3):
+ os.system("python test.py " + name + str(i) + " " + dataset  + " " + batch_size + " " + compute_size + " " + step + " " + gd + " " + cccp)
 
 
