@@ -6,7 +6,7 @@ from data import *
 class SPN:
 	def __init__(self):
 		self.model = None
-		self.data = None
+		self.data = self.data = Data([])
 		self.loss = []
 		self.val_loss = []
 		self.test_loss = None
@@ -29,20 +29,21 @@ class SPN:
 		self.model = Model()
 		self.model.build_model_from_file(fname, random_weights)
 		self.model.compile(step)
-		self.data = Data(self.model.input_order)
+		
 		self.input_order = self.model.input_order
 
-	def make_random_model(self, bfactor, input_size, output=1, step=0.003, cont=True, classify=False):
+	def make_random_model(self, bfactor, input_size, output=1, step=0.003, cont=True, classify=False, data=[]):
 		self.classify = classify
 		self.continuous = cont
 		self.model = Model()
+		if len(data) > 0:
+			self.model.set_mv(data)
 		self.out = output
 		ctype = 'b'
 		if cont:
 			ctype = 'c'
 		self.model.build_random_model(bfactor, input_size, output, ctype=ctype, multiclass=classify)
 		self.model.fast_compile(step)
-		self.data = Data(self.model.input_order)
 		self.input_order = self.model.input_order
 
 	def make_fast_model_from_file(self, fname, random_weights=False, step=0.003, cont=True, classify=False):
@@ -54,21 +55,20 @@ class SPN:
 			ctype = 'c'
 		self.model.build_fast_model(fname, random_weights, ctype=ctype)
 		self.model.fast_compile(step)
-		self.data = Data(self.model.input_order)
 		self.input_order = self.model.input_order
 
-	def add_data(self, filename, dataset='train', mem=False):
+	def add_data(self, filename, dataset='train', mem=False, cont=False):
 		if dataset == 'train':
 			if mem:
 				print "zebra"
-				self.data.load_and_process_train_data_mem(filename)
+				self.data.load_and_process_train_data_mem(filename, cont=cont)
 			else:
 				print "zebro"
-				self.data.load_and_process_train_data(filename)
+				self.data.load_and_process_train_data(filename, cont=cont)
 		elif dataset == 'valid':
-			self.data.load_and_process_valid_data(filename)
+			self.data.load_and_process_valid_data(filename, cont=cont)
 		elif dataset == 'test':
-			self.data.load_and_process_test_data(filename)
+			self.data.load_and_process_test_data(filename, cont=cont)
 
 	def start_session(self):
 		self.model.start_session()
@@ -162,7 +162,7 @@ class SPN:
 				if count:
 					self.model.apply_count(feed_dict, compute_size=compute_size)
 				if gd:
-					_ = self.model.session.run([self.model.opt_val], feed_dict = feed_dict)
+					_ = self.model.session.run([self.model.check_op, self.model.opt_val], feed_dict = feed_dict)
 				if not summ or True:
 					loss = 0#self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				else:

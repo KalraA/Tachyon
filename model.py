@@ -17,7 +17,7 @@ class Model:
         #file_weights: A boolean representing whether to use weights from file or made up weights
         #currently doesn't allow you to build custom SPNs
 
-        #Tensorflow Graph Variables
+        #Tensorflow Graph Variables        
         self.input_swap = None
         self.summ = tf.placeholder(dtype=tf.string, shape=());
         self.loss_summary = None;
@@ -54,7 +54,12 @@ class Model:
         self.inds = None;
         self.multiclass = False;
         self.cccp_updates = []
+        self.means = self.vars = []
         #Do Work
+
+    def set_mv(self, data):
+        self.mean = np.mean(data, axis=1)
+        self.vars = np.var(data, axis=1)
 
     def build_model_from_file(self, fname, random_weights, mem=False):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order = load_file(fname, random_weights)
@@ -62,6 +67,8 @@ class Model:
     def build_random_model(self, bfactor, input_length, output_size=1, ctype='b', multiclass=False):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_build_random_net(bfactor, input_length, output_size, ctype)
         self.multiclass=multiclass
+        self.mean = np.array([0]*input_length)
+        self.vars = np.array([1]*input_length)
 
     def build_fast_model(self, bfactor, input_length, ctype='b'):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_load(bfactor, input_length, ctype)
@@ -156,8 +163,8 @@ class Model:
             self.input_swap = tf.Variable(self.input_order)
             weights = []
             if self.node_layers[0][0].t != 'b':
-                 self.cont[0] = tf.Variable([0.5 + random.random()*0.3 - 0.15 for x in self.leaf_id_order], dtype=tf.float64)
-                 self.cont[1] = tf.Variable([1.0]*len(self.leaf_id_order), dtype=tf.float64)
+                 self.cont[0] = tf.Variable([self.mean[x] + (lambda y: random.random()*y-(y*0.5))(np.sqrt(self.vars[x])) for x in self.input_order], dtype=tf.float64)
+                 self.cont[1] = tf.Variable([self.vars[x] for x in self.input_order], dtype=tf.float64)
                  self.cont[2] = tf.Variable([1.0]*len(self.leaf_id_order), dtype=tf.float64, trainable=False)
             input_weights, input_inds = self.build_input_vector(self.leaf_id_order)
             weights.append(input_weights)
@@ -194,6 +201,7 @@ class Model:
             self.session.run(z)
 
     def build_fast_forward_pass(self, step=0.003):
+        self.check_op = tf.add_check_numerics_ops()
         computations = []
         bob = 1
         if self.node_layers[0][0].t == 'b':
@@ -235,8 +243,8 @@ class Model:
             else:
                pi = tf.constant(np.pi, tf.float64)
                mus = self.cont[0]
-               sigs = tf.nn.relu(self.cont[1] - 0.1) + 0.1
-               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs)
+               sigs = tf.nn.relu(self.cont[1] - 0.01) + 0.01
+               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs) + 0.000001
                input_computation_n = tf.log(input_computation_g)
                computations.append(input_computation_n)
 
