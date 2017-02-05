@@ -9,23 +9,25 @@ mn = sys.argv[2]
 minibatch_cap = 0
 m_start = int(sys.argv[6])
 factor = 2
-step = float(sys.argv[5])
-cf = float(sys.argv[4])
+step = 10
+cf = 0#float(sys.argv[4])
 mem = True
 m = 2024
 r = 2
 valid_losses = []
 test_loss = 0
 my_spn = SPN()
-pbf = (50, 90)
-sbf = (9, 13)
+pbf = (2, 4)
+sbf = (5, 8)
 depth = 6
 if cf == 0 and step == 0:
 	print "oops"
 	exit(0)
 var_num = int(sys.argv[3])
+
 #my_spn.make_fast_model_from_file('../Modelz/' + mn +'.spn.txt', random_weights=True, step=step)
-my_spn.make_random_model((pbf, sbf), var_num, 1)#step=step)
+my_spn.make_random_model((pbf, sbf), var_num, 1, cont=True, classify=False)#step=step)
+# my_spn.continuous = True
 my_spn.start_session()
 my_size = len(my_spn.model.id_node_dict) + len(my_spn.model.input_order)
 mylayers = len(my_spn.model.node_layers)
@@ -56,42 +58,29 @@ def myreshape(data, spn):
 
 start = time.time()
 print start
-if not mem:
-	data = my_spn.data.train.T
-	a = 0
-	ms = 20
-	n = m
-	for i in range(len(data)//ms+1):
-		b = min(len(data), a + ms)
-		if i == n:
-			my_spn.model.normalize_weights()
-		if i < n:
-			my_spn.model.apply_count(data[a:b])
-		if i < n:
-			for p in range(r):
-				my_spn.model.session.run(my_spn.model.opt_val, feed_dict = {my_spn.model.input: data[a:b]})
-		if i % 1 == 0:
-			print my_spn.model.session.run(my_spn.model.loss, feed_dict={my_spn.model.input: my_spn.data.test.T})
-		# else:
-		# 	my_spn.model.session.run(my_spn.model.opt_val2, feed_dict = {my_spn.model.input: data[a:b]})
-		a += ms
-		if ms < minibatch_cap:
-			ms *= 1.6
-			ms = int(ms)
-		print i
-		if a > len(data):
-			break;
-else:
-	my_spn.train(10)
+
+
+labels_train = np.array([[1.0, 0.0]]*len(my_spn.data.train))
+labels_test = np.array([[1.0, 0.0]]*len(my_spn.data.test))
+my_spn.train(1, data=my_spn.data.train, minibatch_size=m_start ,count=False, gd=True)
+# my_spn.train(1, data=my_spn.data.train, minibatch_size=m_start, count=False, gd=True)
+
 end = time.time() - start;
 print time.time()
 print "total time: " + str(end)
+
+
 total_loss = 0.0
+ms = 1000
+a = 0
+b = 0
 for i in range(1+(len(my_spn.data.test)-1)//ms):
+	print i + 1, '/', 1+(len(my_spn.data.test)-1)//ms
 	b = min((i+1)*ms, len(my_spn.data.test))
+	a = i*ms
 	if a == b:
 		break;
-	test_loss = my_spn.model.session.run(my_spn.model.loss, feed_dict={my_spn.model.input: myreshape(my_spn.data.test[i*ms:b], my_spn)})
+	test_loss = my_spn.evaluate(my_spn.data.test[a:b], labels_test[a:b])[0]
 	total_loss += test_loss*(float(b - i*ms))
 test_loss = total_loss/float(len(my_spn.data.test))
 total_loss = 0.0
