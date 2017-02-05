@@ -5,7 +5,9 @@ SPN-Z is an open source library for sum product networks on GPUs. It's extemely 
 
 ### Table of contents
 
-[TOC]
+1. [Getting Started](#Getting Started)
+2. [Documentation](#Docs)
+3. [Examples](#Examples)
 
 ### Getting started
 
