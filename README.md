@@ -95,7 +95,7 @@ This generates an spn model with a specific branching factor. Max depth is cappe
 bfactor = ((a, b), (c, d))
 start = SumNode
 
---- Recursively for all children ---
+# --- Recursively for all children ---
 if curr_node = SUM:
    if scope has only one variable convert into leaf node 
    else generate a number of children product nodes between c and d
