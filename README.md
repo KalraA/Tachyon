@@ -49,13 +49,13 @@ print 'Loss:', test_loss
 
 ##### init
 
-```
+```python
 __init__()
 ```
 Just initializes the holder of your spn model.
 
 ##### make_model_from_file
-```
+```python
 make_fast_model_from_file(self, fname, random_weights=False, cont=False, classify=False)
 ```
 
@@ -77,7 +77,7 @@ parent_id child_id weight
 and creates an spn model. 
 
 ##### make_random_model
-```
+```python
 make_random_model(self, bfactor, input_size, output=1, cont=False, classify=False, data=[])
 ```
 
@@ -91,7 +91,7 @@ Parameters
  - **data** - the training data so if you are doing continuou variables the mean and variance of the leaf nodes can be derived
 
 This generates an spn model with a specific branching factor. Max depth is capped at 11 layers. The algorithm goes like this:
-```
+```python
 bfactor = ((a, b), (c, d))
 start = SumNode
 
@@ -107,7 +107,7 @@ This guarentees a valid spn (complete and decomposable)
 
 
 ##### add_data
-```
+```python
 add_data(self, filename, dataset='train', cont=False)
 ```
 
@@ -120,21 +120,21 @@ Parameters
 Processed data from a text file and loads it into memory. 
 
 ##### start_session
-```
+```python
 start_session(self)
 ```
 
 Starts the tensorflow session inside the holder object
 
 ##### close_session
-```
+```python
 close_session(self)
 ```
 
 Closes the tensorflow session
 
 ##### evaluate
-```
+```python
 evaluate(self, data, labels=None, summ="", minibatch_size=1000, epoch=0)
 ```
 Parameters:
@@ -148,7 +148,7 @@ Parameters:
 evaluate the model on some data
 
 ##### train
-```
+```python
 train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True):
 ```
 Parameters:
@@ -166,13 +166,13 @@ Parameters:
  - **summ** - use tensorboard logs?
 
 ##### get_size
-```
+```python
 get_size(self)
 ```
 
 returns an integer representing the number of nodes in the SPN
 ##### get_weights
-```
+```python
 get_weights(self)
 ```
 returns the number of parameters in a model
@@ -181,25 +181,25 @@ returns the number of parameters in a model
 These are available if you call: spn.model
 
 ##### unbuild_fast_variables
-```
+```python
 unbuild_fast_variables(self)
 ```
 take all the weights from tensorflow and put them back onto the initial model. Must be called before saving
 
 ##### save
-```
+```python
 save(self, fname)
 ```
 save the model to a specific filename. Include the path in the fname variable
 
 ##### clean_nodes
-```
+```python
 clean_nodes(self)
 ```
 Prunes all unused parts of the SPN. Used with counting algorithm.
 
 ##### normalize_weights
-```
+```python
 normalize_weight(self)
 ```
 normalizes all weights in the SPN
@@ -210,7 +210,7 @@ These are different ways of using the library.
 
 #### Offline Learning
 
-```
+```python
 # make an SPN holder
 spn = SPN()
 # include training and testing data
@@ -259,7 +259,7 @@ print 'Loss:', test_loss
 
 #### Online Learning
 
-```
+```python
 # make an SPN holder
 spn = SPN()
 # include training and testing data
@@ -306,7 +306,7 @@ print 'Loss:', test_loss
 
 #### Counting Structure Learning
 
-```
+```python
 # make an SPN holder
 spn = SPN()
 # include training and testing data
@@ -371,7 +371,7 @@ print "Loss:", spn2.evaluate(test)
 
 #### Datasets that don't fit into memory
 
-```
+```python
 # make an SPN holder
 spn = SPN()
 # include training and testing data
@@ -426,7 +426,7 @@ spn.model.save("Models/nltcs.spn.txt")
 
 #### Combining training algorithms
 
-```
+```python
 # make an SPN holder
 spn = SPN()
 # include training and testing data
