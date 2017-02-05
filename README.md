@@ -13,7 +13,7 @@ SPN-Z is an open source library for sum product networks on GPUs. It's extemely 
 
 Getting started is as easy as the following code:
 
-```
+```python
 # make an SPN holder
 spn = SPN()
 # include training and testing data
