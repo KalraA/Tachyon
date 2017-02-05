@@ -1,4 +1,4 @@
-from load_file import *
+from tachyon.load_file import *
 import copy
 
 

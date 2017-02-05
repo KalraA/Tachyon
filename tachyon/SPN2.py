@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from model import *
-from data import *
+from tachyon.model import *
+from tachyon.data import *
 
 class SPN:
 	def __init__(self):
@@ -59,12 +59,7 @@ class SPN:
 
 	def add_data(self, filename, dataset='train', mem=False, cont=False):
 		if dataset == 'train':
-			if mem:
-				print "zebra"
-				self.data.load_and_process_train_data_mem(filename, cont=cont)
-			else:
-				print "zebro"
-				self.data.load_and_process_train_data(filename, cont=cont)
+			self.data.load_and_process_train_data_mem(filename, cont=cont)
 		elif dataset == 'valid':
 			self.data.load_and_process_valid_data(filename, cont=cont)
 		elif dataset == 'test':
@@ -78,12 +73,7 @@ class SPN:
 		self.model.close_session()
 		self.session_on = False
 
-	def predict(self, inp):
-		feed_dict = {self.model.input: self.reshape(inp)}
-		output = self.model.session.run(self.model.output, feed_dict=feed_dict)
-		return output
-
-	def evaluate(self, data, labels=None,summ="", minibatch_size=1000, epoch=0):
+	def predict(self, data, minibatch_size=1000):
 		ms = minibatch_size
 		tot_loss = 0
 		a = 0
@@ -109,6 +99,35 @@ class SPN:
 			tot_loss += (b-a)*np.sum(loss)
 			a += ms
 		tot_loss /= float(len(data))
+		return tot_lossmodel.session.run(self.model.output, feed_dict=feed_dict)
+		return output
+
+	def evaluate(self, data, labels=None,summ="", minibatch_size=1000, epoch=0):
+		ms = minibatch_size
+		tot_loss = 0
+		a = 0
+		b = 0
+		runs = 1+(len(data)-1)//ms
+		for i in range(runs):
+			print i+1, "/", runs
+			b = min(len(data), a + ms)
+			n_data = data[a:b, :, :]#
+			if self.classify:
+                                    #print np.argmax(labels[a:b], axis=1
+				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+			else:
+				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}
+			if (a == b):
+				break
+			if summ == "":	
+				loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
+			else:
+				feed_dict[self.model.summ] = summ
+				summary, loss = self.model.session.run([self.model.loss_summary, self.model.loss], feed_dict=feed_dict)
+				self.model.writer.add_summary(summary, epoch*len(data) + b)
+			tot_loss += (b-a)*np.sum(loss)
+			a += ms
+		tot_loss /= float(len(data))
 		return tot_loss
 
 	def test(self, inp):
@@ -117,13 +136,13 @@ class SPN:
 		print vals
 		return vals;
 
-	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], test=False, gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True):
+	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True):
 		if data == []:
 			data = self.data.train
 			print data.shape
 		if self.classify:
 			assert labels != []
-		# if (valid):	
+		# if (valid):
 		# 	val_loss, val_sum = self.evaluate(self.data.valid.T, 'valid_loss')
 		# 	self.model.writer.add_summary(val_sum, 0)
 		# 	print val_loss
@@ -152,9 +171,9 @@ class SPN:
 				b = min(len(data), a + ms)
 				n_data = data[a:b, :, :]
 				if self.classify:
-					feed_dict = {self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+					feed_dict = {self.model.conz: [0.745], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
 				else:
-					feed_dict = {self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a), self.model.num2: [[1.0]*self.out]*(b-a)}
+					feed_dict = {self.model.conz: [0.745], self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a), self.model.num2: [[1.0]*self.out]*(b-a)}
 				if (a == b):
 					break
 				if cccp:
