@@ -1,6 +1,7 @@
 
 SPN-Z Documentation
 ===================
+SPN-Z is an open source library for sum product networks on GPUs. It's extemely fast and accurate.
 
 ### Table of contents
 
