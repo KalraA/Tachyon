@@ -1,1 +1,0 @@
-losses = {'sbf': (5, 8)  'pbf': (2, 4) 'size':583 'layers':7 'test_loss':11.6390831494, 'time_taken':0.453543186188, 'name': 'abalone' }

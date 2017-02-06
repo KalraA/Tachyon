@@ -1,10 +1,10 @@
 #Model file
-from load_file import *
-from nodes import *
+from tachyon.load_file import *
+from tachyon.nodes import *
 import random
 import tensorflow as tf
 import numpy as np
-from e_load import *
+from tachyon.e_load import *
 
 # def findMaxesTensor(T, S):
 
@@ -17,7 +17,7 @@ class Model:
         #file_weights: A boolean representing whether to use weights from file or made up weights
         #currently doesn't allow you to build custom SPNs
 
-        #Tensorflow Graph Variables
+        #Tensorflow Graph Variables        
         self.input_swap = None
         self.summ = tf.placeholder(dtype=tf.string, shape=());
         self.loss_summary = None;
@@ -54,7 +54,12 @@ class Model:
         self.inds = None;
         self.multiclass = False;
         self.cccp_updates = []
+        self.means = self.vars = []
         #Do Work
+
+    def set_mv(self, data):
+        self.mean = np.mean(data, axis=1)
+        self.vars = np.var(data, axis=1)
 
     def build_model_from_file(self, fname, random_weights, mem=False):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order = load_file(fname, random_weights)
@@ -62,6 +67,8 @@ class Model:
     def build_random_model(self, bfactor, input_length, output_size=1, ctype='b', multiclass=False):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_build_random_net(bfactor, input_length, output_size, ctype)
         self.multiclass=multiclass
+        self.mean = np.array([0]*input_length)
+        self.vars = np.array([1]*input_length)
 
     def build_fast_model(self, bfactor, input_length, ctype='b'):
         self.pos_dict, self.id_node_dict, self.node_layers, self.leaf_id_order, self.input_layers, self.input_order, self.shuffle, self.inds = e_load(bfactor, input_length, ctype)
@@ -156,8 +163,8 @@ class Model:
             self.input_swap = tf.Variable(self.input_order)
             weights = []
             if self.node_layers[0][0].t != 'b':
-                 self.cont[0] = tf.Variable([0.5 + random.random()*0.3 - 0.15 for x in self.leaf_id_order], dtype=tf.float64)
-                 self.cont[1] = tf.Variable([1.0]*len(self.leaf_id_order), dtype=tf.float64)
+                 self.cont[0] = tf.Variable([self.mean[x] + (lambda y: random.random()*y-(y*0.5))(np.sqrt(self.vars[x])) for x in self.input_order], dtype=tf.float64)
+                 self.cont[1] = tf.Variable([self.vars[x] for x in self.input_order], dtype=tf.float64)
                  self.cont[2] = tf.Variable([1.0]*len(self.leaf_id_order), dtype=tf.float64, trainable=False)
             input_weights, input_inds = self.build_input_vector(self.leaf_id_order)
             weights.append(input_weights)
@@ -194,6 +201,7 @@ class Model:
             self.session.run(z)
 
     def build_fast_forward_pass(self, step=0.003):
+        self.check_op = tf.add_check_numerics_ops()
         computations = []
         bob = 1
         if self.node_layers[0][0].t == 'b':
@@ -208,12 +216,17 @@ class Model:
         #                                  shape=(len(self.input_order)*2), name='Input')
         #the input to be appended to each layer
         input_splits = []
+        self.conz = tf.placeholder(shape=[1], dtype=tf.float64)
         #compute the input
         weights = []
         with tf.name_scope("projection"):
+            n = tf.constant(0.0001, dtype=tf.float64)
             for L in range(len(self.weights)):
-                n = tf.constant(0.0001, dtype=tf.float64)
-                weights.append(tf.add(tf.nn.relu(tf.sub(self.weights[L], n)), n))
+                if L != 0:
+                    drop = tf.round(tf.random_uniform(self.weights[L].get_shape(), self.conz, 1.0, dtype=tf.float64))
+                    weights.append(tf.add(tf.nn.relu(tf.sub(self.weights[L]*drop, n)), n))
+                else:
+                    weights.append(tf.add(tf.nn.relu(tf.sub(self.weights[L], n)), n))
 
         with tf.name_scope('nomralization'):
             # print (map(lambda x: x.get_shape(), self.inds))
@@ -235,8 +248,8 @@ class Model:
             else:
                pi = tf.constant(np.pi, tf.float64)
                mus = self.cont[0]
-               sigs = tf.nn.relu(self.cont[1] - 0.1) + 0.1
-               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs)
+               sigs = tf.nn.relu(self.cont[1] - 0.01) + 0.01
+               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs) + 0.000001
                input_computation_n = tf.log(input_computation_g)
                computations.append(input_computation_n)
 
@@ -352,6 +365,8 @@ class Model:
         self.normalize_weights()       
 
     def countss(self):
+        print [x.get_shape() for x in self.weights]
+        weights = filter(lambda x: x.get_shape()[0] != 0, self.weights)
         with tf.name_scope("Counting"):
             maxed_out = []
             val = tf.constant(0.51, dtype=tf.float64)
@@ -360,6 +375,7 @@ class Model:
                 if c == 0 and self.node_layers[0][0].t == 'c':
                     counts = self.counting[c]*0+1
                 else:
+                    qq = tf.random_uniform(weights[c].get_shape(), 0.9, 1.1, dtype=tf.float64)
                     maxes = tf.mul(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
                     back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[c*2]))
                     counts = tf.nn.relu(tf.round(tf.div(back_maxes, self.counting[c])))
@@ -471,117 +487,4 @@ class Model:
         s = [len(leafs), len(leafs)*2]
         # print inds
         return tf.Variable(ws, dtype=tf.float64), tf.constant(s, dtype=tf.int64), tf.constant(inds, dtype=tf.int64)
-
-
-    def build_variables(self):
-        #Build Variables
-        #Input Placeholder
-        with tf.name_scope('inputs'):
-            self.input = tf.placeholder(dtype=tf.float64, 
-                                         shape=(len(self.input_order)*2, 
-                                         None), name='Input')
-            #Input matrix
-            input_weights, input_shape, input_indices = self.build_input_matrix(self.leaf_id_order)
-            input_counter = tf.constant([1.0]*len(self.input_order)*2, dtype=tf.float64)
-            input_counter_matrix = tf.SparseTensor(input_indices, input_counter, input_shape)
-            self.counter_tensors.append(input_counter_matrix)
-            input_matrix = tf.SparseTensor(input_indices, tf.add(tf.nn.relu(tf.identity(input_weights)), 0.001), input_shape)
-
-        #Layer Matrices
-        layer_matrices = []
-        variables = []
-        L = 1
-        for node_layer in self.node_layers[1:]:
-            indices = []
-            weights = []
-            shape = []
-            for i in range(len(node_layer)-self.input_layers[L]):
-                for j in range(len(node_layer[i].children)):
-                    #get the layer position of the child node
-                    a, b = self.pos_dict[node_layer[i].children[j]]
-                    indices.append([i, b])
-                    if isinstance(node_layer[i], SumNode): 
-                        #Sum Node
-                        weights.append(float(node_layer[i].weights[j]))
-                    else:
-                        #Product Node
-                        weights.append(1.0)
-            if isinstance(node_layer[0], SumNode):
-                trainable = True
-                name = 'SUM_VARS' + str(L)
-            else:
-                trainable = False
-                name = 'PROD_VARS' + str(L)
-            print weights
-            winds = zip(weights, indices);
-            winds.sort(lambda x, y: -1 if x[1][1] < y[1][1] else 1);
-            weights, indices = zip(*winds);
-            print indices;
-            shape = [len(node_layer)-self.input_layers[L], len(self.node_layers[L-1])]
-            with tf.name_scope(name):
-                W = tf.Variable(weights, trainable=trainable, dtype=tf.float64)
-                I = tf.constant(indices, dtype=tf.int64)
-                S = tf.constant(shape, dtype=tf.int64)
-                C = tf.constant([1.0]*len(weights), dtype=tf.float64)
-                # print shape
-                L += 1
-                matrix = tf.SparseTensor(I, tf.nn.relu(tf.identity(W)), S)
-                counter_matrix = tf.SparseTensor(I, C, S);
-            variables.append((W, I, S, shape))
-            self.counter_tensors.append(counter_matrix)
-            layer_matrices.append(matrix)
-        self.sparse_tensors = [input_matrix] + layer_matrices
-        self.variables = [(input_weights, input_indices, input_shape, [len(self.input_order), len(self.input_order)*2])] + variables
-
-    def build_forward_graph(self):
-        computations = []
-
-        #the input to be appended to each layer
-        input_splits = []
-        #compute the input
-        with tf.name_scope('NORM_FACTOR'):
-            sums_of_sparses = [tf.reshape(tf.sparse_reduce_sum(sm, reduction_axes=1), [-1 ,1]) for sm in self.sparse_tensors]
-        # print sums_of_sparses
-        with tf.name_scope('LEAFS_' + str(len(self.input_order))):
-            input_computation = tf.div(tf.sparse_tensor_dense_matmul(self.sparse_tensors[0], self.input), sums_of_sparses[0])
-            computations.append(input_computation)
-
-        #split the input computation and figure out which one goes in each layer
-            i = 0
-            for size in self.input_layers:
-                input_splits.append(input_computation[i:i+size])
-                i += size
-
-        current_computation = input_splits[0]
-        L = 1
-        for i in range(len(self.node_layers[1:])):
-            node_layer = self.node_layers[i+1]
-            matrix = self.sparse_tensors[i+1]
-            if isinstance(node_layer[0], SumNode):
-                with tf.name_scope('SUM_' + str(self.variables[i+1][3][0])):
-                    current_computation = tf.concat(0,
-                                          [tf.div(tf.sparse_tensor_dense_matmul(matrix, current_computation, name='ComputeSum'), sums_of_sparses[i+1], name='Normalize'), 
-                                                                                      input_splits[L]], name='ConcatenateInputs')
-            else:
-                with tf.name_scope('PROD_' + str(self.variables[i+1][3][0])):
-                    current_computation = tf.exp(tf.sparse_tensor_dense_matmul(matrix, tf.log(current_computation, name='ToLogDomain'), name='ComputeProd'), name='ToNormalDomain')
-            L += 1;
-            computations.append(current_computation)
-
-        self.output = current_computation
-        with tf.name_scope('loss'):
-            self.loss = -tf.reduce_mean(tf.log(self.output), reduction_indices=1)
-            self.loss_summary = tf.scalar_summary(self.summ, self.loss)
-        # self.opt_val = self.optimizer(0.01).minimize(self.loss)
-        # self.opt_val2 = self.optimizer2(0.01).minimize(self.loss)
-        self.computations = computations
-    # def counting_step(self) :
-
-
-    def get_normal_value(self):
-        ones = [[1]*len(self.input_order)*2]
-        norm_value = self.output.eval(session=self.session, feed_dict = {self.input: ones})
-        self.norm_value = norm_value
-        return norm_value
-
-
+        

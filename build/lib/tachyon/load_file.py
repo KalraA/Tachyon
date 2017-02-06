@@ -1,6 +1,6 @@
 #loading a graph from a file
 
-from nodes import *
+from tachyon.nodes import *
 import random
 import numpy as np
 r = lambda x: 0.1 + random.random()*0.1

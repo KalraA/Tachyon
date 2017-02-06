@@ -1,2 +1,11 @@
-*.pyc
+*data*
+*models*
+*10*
+*.ipynb
+*exp*
+*mnis*
+*run*
+*test*
+*thing*
+*pyc
 *log*
