@@ -5,9 +5,35 @@ SPN-Z is an open source library for sum product networks on GPUs. It's extemely 
 
 ### Table of contents
 
-1. [Getting Started](#getting-started)
-2. [Documentation](#docs)
-3. [Examples](#examples)
+1. [Installation](#installation)
+2. [Getting Started](#getting-started)
+3. [Documentation](#docs)
+4. [Examples](#examples)
+
+### Installation
+
+```bash
+pip install tachyon
+```
+
+and for the models and data:
+
+```bash
+mkdir my_working_directory
+cd my_working_directory
+mkdir models
+mkdir data
+cd models
+wget https://www.dropbox.com/s/i6txi9q2x6b9fgy/spn_models.zip
+unzip spn_models.zip
+rm spn_models.zip
+cd ../data
+wget https://www.dropbox.com/s/axu6xi6xtida4y0/Dataz.zip
+unzip Dataz.zip
+rm Dataz.zip
+cd ..
+
+```
 
 ### Getting started
 
