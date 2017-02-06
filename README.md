@@ -35,8 +35,9 @@ unzip spn_models.zip
 rm spn_models.zip
 cd ../data
 wget https://www.dropbox.com/s/axu6xi6xtida4y0/Dataz.zip
-unzip Dataz.zip
-rm Dataz.zip
+wget https://www.dropbox.com/s/08aw5j42dcuyp5v/abalone.zip
+unzip *.zip
+rm *.zip
 cd ..
 
 ```
