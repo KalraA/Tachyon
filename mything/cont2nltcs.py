@@ -1,1 +1,0 @@
-losses = {'sbf': (5, 8)  'pbf': (2, 4) 'size':1498 'layers':7 'test_loss':5.90293881293, 'time_taken':5.45887517929, 'name': 'nltcs' }

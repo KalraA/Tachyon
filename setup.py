@@ -11,3 +11,4 @@ setup(name='Tachyon',
       packages=['tachyon'],
       py_modules=['numpy', 'tensorflow']
      )
+
