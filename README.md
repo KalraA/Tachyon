@@ -5,10 +5,16 @@ Tachyon is an open source library for sum product networks on GPUs. It's extemel
 
 ### Table of contents
 
-1. [Installation](#installation)
-2. [Getting Started](#getting-started)
-3. [Documentation](#docs)
-4. [Examples](#examples)
+1. [About](#about)
+2. [Installation](#installation)
+3. [Getting Started](#getting-started)
+4. [Documentation](#docs)
+5. [Examples](#examples)
+
+### About
+Tachyon is a sum product network build ontop of tensorflow and numpy. It supports both univariate binary and contiuous leaf nodes, and has 3 parameter learning algorithms: CCCP/EM (binary only), Gradient Descent (Adam, RMSProp, Momentum, Adagrad ... etc), Counting. As well as a structure pruning algorithm. It is built by the University of Waterloo computer science department. Please email a6kalra [AT] uwaterloo [DOT] ca for inquiries. 
+
+Why Tachyon? Tachyon is a hypothetical particle faster than the speed of light. Our library usually has on average 2x-100x speedups over CPU C++ implementations of counting, cccp, or gradient descent. 
 
 ### Installation
 
@@ -82,14 +88,16 @@ __init__()
 ```
 Just initializes the holder of your spn model.
 
-##### make_model_from_file
+##### make_fast_model_from_file
 ```python
-make_fast_model_from_file(self, fname, random_weights=False, cont=False, classify=False)
+make_fast_model_from_file(self, fname, random_weights=False, tensorboard_dir="", cont=False, classify=False)
 ```
 
 Parameters
 
+ - **fname** - location of the name of the model file
  - **random_weights** - use the weights in the file or generate random ones
+ - **tensorboard_dir** - location of the tensorboard logs. If "" then tensorboard logs will not be produced.
  - **cont** - True for continuous variables, False for binary variables (Currently only working consistently for binary variables)
  - **classify** - is this doing classification (Note: this doesn't work yet)
 
@@ -106,13 +114,14 @@ and creates an spn model.
 
 ##### make_random_model
 ```python
-make_random_model(self, bfactor, input_size, output=1, cont=False, classify=False, data=[])
+make_random_model(self, bfactor, input_size, output=1, tensorboard_dir="", cont=False, classify=False, data=[])
 ```
 
 Parameters
 
  - **bfactor** - a tuple of tuples in the format (prod branch factor, sum branch factor)  where a branch factor looks like (lower_bound, upper_bound)
  - **input_size** - the number of variables total
+ - **tensorboard_dir** - location of the tensorboard logs. If "" then tensorboard logs will not be produced.
  - **output_size** - 1 unless you are doing classification, but classification doesn't work yet so don't touch
  - **cont** - True for continuous variables, False for binary variables
  - **classify** - is this doing classification (Note: this doesn't work yet)
@@ -177,7 +186,7 @@ evaluate the model on some data
 
 ##### train
 ```python
-train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True):
+train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True, dropout=0.0):
 ```
 Parameters:
 
@@ -192,6 +201,7 @@ Parameters:
  - **cccp** - use em/cccp? (only binary)
  - **patience** - early stopping, if the validation loss stops decreasing for x number of iterations, kill the training
  - **summ** - use tensorboard logs?
+ - **dropout** - what is the dropout percentage for network. Dropout doesn't do that well for SPNs but sometimes it does good. 
 
 ##### get_size
 ```python
@@ -254,7 +264,7 @@ prod_branch_factor = (5, 8)
 variables = 16
 
 #binary model
-spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, cont=False, classify=False)
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, cont=False, classify=False, tensorboard_dir="./logs")
 
 # start the session
 spn.start_session()
@@ -285,6 +295,11 @@ test_loss = spn.evaluate(test)
 print 'Loss:', test_loss
 # Loss: 6.034
 
+```
+
+Then to see the graphs:
+```bash
+tensorboard --logdir=./logs
 ```
 
 #### Online Learning
