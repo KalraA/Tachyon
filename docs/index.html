@@ -1,0 +1,530 @@
+<link rel="stylesheet" href="github.css">
+<h1>
+<a id="user-content-spn-z-documentation" class="anchor" href="#spn-z-documentation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>SPN-Z Documentation</h1>
+
+<p>SPN-Z is an open source library for sum product networks on GPUs. It's extemely fast and accurate.</p>
+<p> Check out <a href="https://github.com/KalraA/Tachyon/"> the github </a> for more details and colourful docs </p>
+<h3>
+<a id="user-content-table-of-contents" class="anchor" href="#table-of-contents" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Table of contents</h3>
+
+<ol>
+<li><a href="#getting-started">Getting Started</a></li>
+<li><a href="#docs">Documentation</a></li>
+<li><a href="#examples">Examples</a></li>
+</ol>
+
+<h3>
+<a id="user-content-getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Getting started</h3>
+
+<p>Getting started is as easy as the following code:</p>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c"><span class="pl-c">#</span> make an SPN holder</span>
+spn <span class="pl-k">=</span> SPN()
+<span class="pl-c"><span class="pl-c">#</span> include training and testing data</span>
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.ts.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.valid.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>valid<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.test.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+<span class="pl-c"><span class="pl-c">#</span> create a valid sum product network</span>
+
+sum_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">3</span>, <span class="pl-c1">6</span>)
+prod_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">5</span>, <span class="pl-c1">8</span>)
+variables <span class="pl-k">=</span> <span class="pl-c1">16</span>
+
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables)
+
+<span class="pl-c"><span class="pl-c">#</span> start the session</span>
+spn.start_session()
+
+<span class="pl-c"><span class="pl-c">#</span> train</span>
+epochs <span class="pl-k">=</span> <span class="pl-c1">10</span>
+<span class="pl-c"><span class="pl-c">#</span> access the data</span>
+train <span class="pl-k">=</span> spn.data.train
+valid <span class="pl-k">=</span> spn.data.valid
+test <span class="pl-k">=</span> spn.data.test
+spn.train(epochs, train)
+test_loss <span class="pl-k">=</span> spn.evaluate(test)
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">'</span>Loss:<span class="pl-pds">'</span></span>, test_loss
+<span class="pl-c"><span class="pl-c">#</span> Loss: 6.182</span>
+</pre></div>
+
+<h3>
+<a id="user-content-docs" class="anchor" href="#docs" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Docs</h3>
+
+<h4>
+<a id="user-content-spn" class="anchor" href="#spn" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>SPN:</h4>
+
+<h5>
+<a id="user-content-init" class="anchor" href="#init" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>init</h5>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c1">__init__</span>()</pre></div>
+
+<p>Just initializes the holder of your spn model.</p>
+
+<h5>
+<a id="user-content-make_model_from_file" class="anchor" href="#make_model_from_file" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>make_model_from_file</h5>
+
+<div class="highlight highlight-source-python"><pre>make_fast_model_from_file(<span class="pl-c1">self</span>, fname, <span class="pl-v">random_weights</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>)</pre></div>
+
+<p>Parameters</p>
+
+<ul>
+<li>
+<strong>random_weights</strong> - use the weights in the file or generate random ones</li>
+<li>
+<strong>cont</strong> - True for continuous variables, False for binary variables (Currently only working consistently for binary variables)</li>
+<li>
+<strong>classify</strong> - is this doing classification (Note: this doesn't work yet)</li>
+</ul>
+
+<p>This takes an SPN file with the following format:</p>
+
+<pre><code>###NODES###
+id SUM
+id PRD
+id LEAVE var_num w1 w2
+###EDGES###
+parent_id child_id weight 
+</code></pre>
+
+<p>and creates an spn model. </p>
+
+<h5>
+<a id="user-content-make_random_model" class="anchor" href="#make_random_model" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>make_random_model</h5>
+
+<div class="highlight highlight-source-python"><pre>make_random_model(<span class="pl-c1">self</span>, bfactor, input_size, <span class="pl-v">output</span><span class="pl-k">=</span><span class="pl-c1">1</span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">data</span><span class="pl-k">=</span>[])</pre></div>
+
+<p>Parameters</p>
+
+<ul>
+<li>
+<strong>bfactor</strong> - a tuple of tuples in the format (prod branch factor, sum branch factor)  where a branch factor looks like (lower_bound, upper_bound)</li>
+<li>
+<strong>input_size</strong> - the number of variables total</li>
+<li>
+<strong>output_size</strong> - 1 unless you are doing classification, but classification doesn't work yet so don't touch</li>
+<li>
+<strong>cont</strong> - True for continuous variables, False for binary variables</li>
+<li>
+<strong>classify</strong> - is this doing classification (Note: this doesn't work yet)</li>
+<li>
+<strong>data</strong> - the training data so if you are doing continuou variables the mean and variance of the leaf nodes can be derived</li>
+</ul>
+
+<p>This generates an spn model with a specific branching factor. Max depth is capped at 11 layers. The algorithm goes like this:</p>
+
+<div class="highlight highlight-source-python"><pre>bfactor <span class="pl-k">=</span> ((a, b), (c, d))
+start <span class="pl-k">=</span> SumNode
+
+<span class="pl-c"><span class="pl-c">#</span> --- Recursively for all children ---</span>
+<span class="pl-k">if</span> curr_node <span class="pl-k">=</span> <span class="pl-c1">SUM</span>:
+   <span class="pl-k">if</span> scope has only one variable convert into leaf node 
+   <span class="pl-k">else</span> generate a number of children product nodes between c <span class="pl-k">and</span> d
+<span class="pl-k">if</span> product node:
+   generate a number of children <span class="pl-c1">sum</span> nodes between a <span class="pl-k">and</span> b
+   randomly factor the scope of this node between the children</pre></div>
+
+<p>This guarentees a valid spn (complete and decomposable)</p>
+
+<h5>
+<a id="user-content-add_data" class="anchor" href="#add_data" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>add_data</h5>
+
+<div class="highlight highlight-source-python"><pre>add_data(<span class="pl-c1">self</span>, filename, <span class="pl-v">dataset</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)</pre></div>
+
+<p>Parameters</p>
+
+<ul>
+<li>
+<strong>filename</strong> - the file that contains the data</li>
+<li>
+<strong>dataset</strong> - a string that's either "train", "valid", or "test" and determines if you want this data to be accessed by spn.data.train, spn.data.valid, or spn.data.test</li>
+<li>
+<strong>cont</strong> - True for continuous variables, False for binary variables</li>
+</ul>
+
+<p>Processed data from a text file and loads it into memory. </p>
+
+<h5>
+<a id="user-content-start_session" class="anchor" href="#start_session" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>start_session</h5>
+
+<div class="highlight highlight-source-python"><pre>start_session(<span class="pl-c1">self</span>)</pre></div>
+
+<p>Starts the tensorflow session inside the holder object</p>
+
+<h5>
+<a id="user-content-close_session" class="anchor" href="#close_session" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>close_session</h5>
+
+<div class="highlight highlight-source-python"><pre>close_session(<span class="pl-c1">self</span>)</pre></div>
+
+<p>Closes the tensorflow session</p>
+
+<h5>
+<a id="user-content-evaluate" class="anchor" href="#evaluate" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>evaluate</h5>
+
+<div class="highlight highlight-source-python"><pre>evaluate(<span class="pl-c1">self</span>, data, <span class="pl-v">labels</span><span class="pl-k">=</span><span class="pl-c1">None</span>, <span class="pl-v">summ</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span>, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span><span class="pl-c1">1000</span>, <span class="pl-v">epoch</span><span class="pl-k">=</span><span class="pl-c1">0</span>)</pre></div>
+
+<p>Parameters:</p>
+
+<ul>
+<li>
+<strong>data</strong> - A data matrix do evaluate</li>
+<li>
+<strong>labels</strong> - Labels for the data. Optional and will only matter if classify=True. If labels aren't given, simply loss will be outputed</li>
+<li>
+<strong>summ</strong> - tensorflow summary name</li>
+<li>
+<strong>minibatch_size</strong> - the minibatch size for making predictions. </li>
+<li>
+<strong>epoch</strong> - The global_step that goes with the tensorflow summary</li>
+</ul>
+
+<p>evaluate the model on some data</p>
+
+<h5>
+<a id="user-content-train" class="anchor" href="#train" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>train</h5>
+
+<div class="highlight highlight-source-python"><pre>train(<span class="pl-c1">self</span>, epochs, <span class="pl-v">data</span><span class="pl-k">=</span>[], <span class="pl-v">labels</span><span class="pl-k">=</span>[], <span class="pl-v">minibatch_size</span><span class="pl-k">=</span><span class="pl-c1">512</span>, <span class="pl-v">valid_data</span><span class="pl-k">=</span>[], <span class="pl-v">gd</span><span class="pl-k">=</span><span class="pl-c1">True</span>, <span class="pl-v">compute_size</span><span class="pl-k">=</span><span class="pl-c1">1000</span>, <span class="pl-v">count</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">cccp</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">patience</span><span class="pl-k">=</span><span class="pl-c1">100</span>, <span class="pl-v">summ</span><span class="pl-k">=</span><span class="pl-c1">True</span>):</pre></div>
+
+<p>Parameters:</p>
+
+<ul>
+<li>
+<strong>epochs</strong> - number of iterations across the data</li>
+<li>
+<strong>data</strong> - training data matrix</li>
+<li>
+<strong>labels</strong> - optional, only if classify=True</li>
+<li>
+<strong>minibatch_size</strong> - the size of the batches in batch training</li>
+<li>
+<strong>valid_data</strong> - validation data</li>
+<li>
+<strong>gd</strong> - use gradient descent? (both binary and continuous)</li>
+<li>
+<strong>compute_size</strong> - size to do computations. Sometimes you want large batch sizes but cannot fit into memory. So you computes large batches in smaller amounts so it can fit on your GPU. only affects counting and cccp, not gradient descent</li>
+<li>
+<strong>count</strong> - use counting? (both binary and continuous)</li>
+<li>
+<strong>cccp</strong> - use em/cccp? (only binary)</li>
+<li>
+<strong>patience</strong> - early stopping, if the validation loss stops decreasing for x number of iterations, kill the training</li>
+<li>
+<strong>summ</strong> - use tensorboard logs?</li>
+</ul>
+
+<h5>
+<a id="user-content-get_size" class="anchor" href="#get_size" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>get_size</h5>
+
+<div class="highlight highlight-source-python"><pre>get_size(<span class="pl-c1">self</span>)</pre></div>
+
+<p>returns an integer representing the number of nodes in the SPN</p>
+
+<h5>
+<a id="user-content-get_weights" class="anchor" href="#get_weights" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>get_weights</h5>
+
+<div class="highlight highlight-source-python"><pre>get_weights(<span class="pl-c1">self</span>)</pre></div>
+
+<p>returns the number of parameters in a model</p>
+
+<h4>
+<a id="user-content-spnmodel" class="anchor" href="#spnmodel" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>SPN.model</h4>
+
+<p>These are available if you call: spn.model</p>
+
+<h5>
+<a id="user-content-unbuild_fast_variables" class="anchor" href="#unbuild_fast_variables" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>unbuild_fast_variables</h5>
+
+<div class="highlight highlight-source-python"><pre>unbuild_fast_variables(<span class="pl-c1">self</span>)</pre></div>
+
+<p>take all the weights from tensorflow and put them back onto the initial model. Must be called before saving</p>
+
+<h5>
+<a id="user-content-save" class="anchor" href="#save" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>save</h5>
+
+<div class="highlight highlight-source-python"><pre>save(<span class="pl-c1">self</span>, fname)</pre></div>
+
+<p>save the model to a specific filename. Include the path in the fname variable</p>
+
+<h5>
+<a id="user-content-clean_nodes" class="anchor" href="#clean_nodes" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>clean_nodes</h5>
+
+<div class="highlight highlight-source-python"><pre>clean_nodes(<span class="pl-c1">self</span>)</pre></div>
+
+<p>Prunes all unused parts of the SPN. Used with counting algorithm.</p>
+
+<h5>
+<a id="user-content-normalize_weights" class="anchor" href="#normalize_weights" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>normalize_weights</h5>
+
+<div class="highlight highlight-source-python"><pre>normalize_weight(<span class="pl-c1">self</span>)</pre></div>
+
+<p>normalizes all weights in the SPN</p>
+
+<h3>
+<a id="user-content-examples" class="anchor" href="#examples" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Examples</h3>
+
+<p>These are different ways of using the library.</p>
+
+<h4>
+<a id="user-content-offline-learning" class="anchor" href="#offline-learning" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Offline Learning</h4>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c"><span class="pl-c">#</span> make an SPN holder</span>
+spn <span class="pl-k">=</span> SPN()
+<span class="pl-c"><span class="pl-c">#</span> include training and testing data</span>
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.ts.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.valid.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>valid<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.test.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+<span class="pl-c"><span class="pl-c">#</span> create a valid sum product network</span>
+
+sum_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">3</span>, <span class="pl-c1">6</span>)
+prod_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">5</span>, <span class="pl-c1">8</span>)
+variables <span class="pl-k">=</span> <span class="pl-c1">16</span>
+
+<span class="pl-c"><span class="pl-c">#</span>binary model</span>
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+
+<span class="pl-c"><span class="pl-c">#</span> start the session</span>
+spn.start_session()
+
+<span class="pl-c"><span class="pl-c">#</span> train</span>
+
+<span class="pl-c"><span class="pl-c">#</span> pick the optimization algorithm</span>
+cccp <span class="pl-k">=</span> <span class="pl-c1">True</span>
+gd <span class="pl-k">=</span> <span class="pl-c1">False</span>
+count <span class="pl-k">=</span> <span class="pl-c1">False</span>
+
+<span class="pl-c"><span class="pl-c">#</span>large minibatches with a small number at a time</span>
+minibatch_size<span class="pl-k">=</span><span class="pl-c1">1000</span>
+compute_size<span class="pl-k">=</span><span class="pl-c1">10</span>
+
+<span class="pl-c"><span class="pl-c">#</span> other stuff</span>
+epochs <span class="pl-k">=</span> <span class="pl-c1">1000</span>
+patience <span class="pl-k">=</span> <span class="pl-c1">2</span>
+
+<span class="pl-c"><span class="pl-c">#</span> access the data</span>
+train <span class="pl-k">=</span> spn.data.train
+valid <span class="pl-k">=</span> spn.data.valid
+test <span class="pl-k">=</span> spn.data.test
+
+
+spn.train(epochs, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>spn.data.valid, <span class="pl-v">patience</span><span class="pl-k">=</span>patience, <span class="pl-v">cccp</span><span class="pl-k">=</span>cccp, <span class="pl-v">gd</span><span class="pl-k">=</span>gd, <span class="pl-v">count</span><span class="pl-k">=</span>count, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span>minibatch_size, <span class="pl-v">compute_size</span><span class="pl-k">=</span>compute_size)
+test_loss <span class="pl-k">=</span> spn.evaluate(test)
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">'</span>Loss:<span class="pl-pds">'</span></span>, test_loss
+<span class="pl-c"><span class="pl-c">#</span> Loss: 6.034</span>
+</pre></div>
+
+<h4>
+<a id="user-content-online-learning" class="anchor" href="#online-learning" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Online Learning</h4>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c"><span class="pl-c">#</span> make an SPN holder</span>
+spn <span class="pl-k">=</span> SPN()
+<span class="pl-c"><span class="pl-c">#</span> include training and testing data</span>
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.ts.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.valid.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>valid<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.test.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>)
+<span class="pl-c"><span class="pl-c">#</span> create a valid sum product network</span>
+
+sum_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">3</span>, <span class="pl-c1">6</span>)
+prod_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">5</span>, <span class="pl-c1">8</span>)
+variables <span class="pl-k">=</span> <span class="pl-c1">8</span>
+
+<span class="pl-c"><span class="pl-c">#</span>continuous model</span>
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">data</span><span class="pl-k">=</span>spn.data.train)
+
+<span class="pl-c"><span class="pl-c">#</span> start the session</span>
+spn.start_session()
+
+<span class="pl-c"><span class="pl-c">#</span> train</span>
+
+<span class="pl-c"><span class="pl-c">#</span> pick the optimization algorithm</span>
+cccp <span class="pl-k">=</span> <span class="pl-c1">False</span>
+gd <span class="pl-k">=</span> <span class="pl-c1">True</span>
+count <span class="pl-k">=</span> <span class="pl-c1">True</span> <span class="pl-c"><span class="pl-c">#</span>take a step of counting then a step of gradient descent</span>
+
+<span class="pl-c"><span class="pl-c">#</span>large minibatches with a small number at a time</span>
+minibatch_size<span class="pl-k">=</span><span class="pl-c1">1</span>
+
+<span class="pl-c"><span class="pl-c">#</span> other stuff</span>
+epochs <span class="pl-k">=</span> <span class="pl-c1">1</span>
+
+<span class="pl-c"><span class="pl-c">#</span> access the data</span>
+train <span class="pl-k">=</span> spn.data.train
+valid <span class="pl-k">=</span> spn.data.valid
+test <span class="pl-k">=</span> spn.data.test
+
+
+spn.train(epochs, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>valid,<span class="pl-v">cccp</span><span class="pl-k">=</span>cccp, <span class="pl-v">gd</span><span class="pl-k">=</span>gd, <span class="pl-v">count</span><span class="pl-k">=</span>count, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span>minibatch_size)
+test_loss <span class="pl-k">=</span> spn.evaluate(test)
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">'</span>Loss:<span class="pl-pds">'</span></span>, test_loss
+<span class="pl-c"><span class="pl-c">#</span> Loss: 3.013</span>
+</pre></div>
+
+<h4>
+<a id="user-content-counting-structure-learning" class="anchor" href="#counting-structure-learning" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Counting Structure Learning</h4>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c"><span class="pl-c">#</span> make an SPN holder</span>
+spn <span class="pl-k">=</span> SPN()
+<span class="pl-c"><span class="pl-c">#</span> include training and testing data</span>
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.ts.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.valid.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>valid<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>nltcs.test.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+<span class="pl-c"><span class="pl-c">#</span> create a valid sum product network</span>
+
+sum_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">3</span>, <span class="pl-c1">6</span>)
+prod_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">5</span>, <span class="pl-c1">8</span>)
+variables <span class="pl-k">=</span> <span class="pl-c1">8</span>
+
+<span class="pl-c"><span class="pl-c">#</span>binary model</span>
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">data</span><span class="pl-k">=</span>spn.data.train)
+
+<span class="pl-c"><span class="pl-c">#</span> start the session</span>
+spn.start_session()
+
+<span class="pl-c"><span class="pl-c">#</span> train</span>
+
+<span class="pl-c"><span class="pl-c">#</span> pick the optimization algorithm</span>
+cccp <span class="pl-k">=</span> <span class="pl-c1">False</span>
+gd <span class="pl-k">=</span> <span class="pl-c1">False</span>
+count <span class="pl-k">=</span> <span class="pl-c1">True</span>
+
+<span class="pl-c"><span class="pl-c">#</span>large minibatches with a small number at a time</span>
+minibatch_size<span class="pl-k">=</span><span class="pl-c1">100</span>
+
+<span class="pl-c"><span class="pl-c">#</span> other stuff</span>
+epochs <span class="pl-k">=</span> <span class="pl-c1">5</span>
+
+<span class="pl-c"><span class="pl-c">#</span> access the data</span>
+train <span class="pl-k">=</span> spn.data.train
+valid <span class="pl-k">=</span> spn.data.valid
+test <span class="pl-k">=</span> spn.data.test
+
+
+spn.train(epochs, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>valid,<span class="pl-v">cccp</span><span class="pl-k">=</span>cccp, <span class="pl-v">gd</span><span class="pl-k">=</span>gd, <span class="pl-v">count</span><span class="pl-k">=</span>count, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span>minibatch_size)
+test_loss <span class="pl-k">=</span> spn.evaluate(test)
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">'</span>Loss:<span class="pl-pds">'</span></span>, test_loss
+<span class="pl-c"><span class="pl-c">#</span> Loss: 6.083</span>
+
+spn.model.unbuild_fast_variables() <span class="pl-c"><span class="pl-c">#</span>pull weights from tensorflow.</span>
+spn.model.save(<span class="pl-s"><span class="pl-pds">"</span>Models/large.spn.txt<span class="pl-pds">"</span></span>)
+spn.model.clean_nodes()
+spn.model.save(<span class="pl-s"><span class="pl-pds">"</span>Models/small.spn.txt<span class="pl-pds">"</span></span>)
+
+spn2 <span class="pl-k">=</span> SPN()
+spn2.make_fast_model_from_file(<span class="pl-s"><span class="pl-pds">"</span>Models/small.spn.txt<span class="pl-pds">"</span></span>, <span class="pl-v">random_weights</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">"</span>Loss:<span class="pl-pds">"</span></span>, spn2.evaluate(test)
+<span class="pl-c"><span class="pl-c">#</span> Loss: 6.083</span>
+
+<span class="pl-c"><span class="pl-c">#</span> continue training with more sophisticated algorithm</span>
+
+spn.train(<span class="pl-c1">1000</span>, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>valid,<span class="pl-v">cccp</span><span class="pl-k">=</span><span class="pl-c1">True</span>, <span class="pl-v">gd</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">count</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span><span class="pl-c1">1000000</span>, <span class="pl-v">compute_size</span><span class="pl-k">=</span><span class="pl-c1">100</span>, <span class="pl-v">patience</span><span class="pl-k">=</span><span class="pl-c1">2</span>)
+
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">"</span>Loss:<span class="pl-pds">"</span></span>, spn2.evaluate(test)
+<span class="pl-c"><span class="pl-c">#</span> Loss: 6.037</span>
+</pre></div>
+
+<h4>
+<a id="user-content-datasets-that-dont-fit-into-memory" class="anchor" href="#datasets-that-dont-fit-into-memory" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Datasets that don't fit into memory</h4>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c"><span class="pl-c">#</span> make an SPN holder</span>
+spn <span class="pl-k">=</span> SPN()
+<span class="pl-c"><span class="pl-c">#</span> include training and testing data</span>
+<span class="pl-c"><span class="pl-c">#</span>let's assume nltcs is split into 2 datasets</span>
+<span class="pl-c"><span class="pl-c">#</span>nltcs.ts1.data, nltcs.ts2.data</span>
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.valid.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>valid<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.test.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>)
+<span class="pl-c"><span class="pl-c">#</span> create a valid sum product network</span>
+
+sum_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">3</span>, <span class="pl-c1">6</span>)
+prod_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">5</span>, <span class="pl-c1">8</span>)
+variables <span class="pl-k">=</span> <span class="pl-c1">8</span>
+
+<span class="pl-c"><span class="pl-c">#</span>binary model</span>
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">data</span><span class="pl-k">=</span>spn.data.train)
+
+<span class="pl-c"><span class="pl-c">#</span> start the session</span>
+spn.start_session()
+
+<span class="pl-c"><span class="pl-c">#</span> train</span>
+filenames <span class="pl-k">=</span> [<span class="pl-s"><span class="pl-pds">'</span>nltcs.ts1.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>nltcs.ts2.data<span class="pl-pds">'</span></span>]
+<span class="pl-c"><span class="pl-c">#</span> pick the optimization algorithm</span>
+cccp <span class="pl-k">=</span> <span class="pl-c1">False</span>
+gd <span class="pl-k">=</span> <span class="pl-c1">True</span>
+count <span class="pl-k">=</span> <span class="pl-c1">False</span>
+
+<span class="pl-c"><span class="pl-c">#</span>large minibatches with a small number at a time</span>
+minibatch_size<span class="pl-k">=</span><span class="pl-c1">100</span>
+
+<span class="pl-c"><span class="pl-c">#</span> other stuff</span>
+epochs <span class="pl-k">=</span> <span class="pl-c1">5</span>
+
+<span class="pl-c"><span class="pl-c">#</span> access the data</span>
+valid <span class="pl-k">=</span> spn.data.valid
+test <span class="pl-k">=</span> spn.data.test
+
+<span class="pl-k">for</span> e <span class="pl-k">in</span> <span class="pl-c1">range</span>(epochs):
+    <span class="pl-k">for</span> filename <span class="pl-k">in</span> filenames:
+        spn.add_data(filename, <span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">False</span>) 
+        train <span class="pl-k">=</span> spn.data.train
+        spn.train(<span class="pl-c1">1</span>, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>valid,<span class="pl-v">cccp</span><span class="pl-k">=</span>cccp, <span class="pl-v">gd</span><span class="pl-k">=</span>gd, <span class="pl-v">count</span><span class="pl-k">=</span>count, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span>minibatch_size)
+
+
+test_loss <span class="pl-k">=</span> spn.evaluate(test)
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">'</span>Loss:<span class="pl-pds">'</span></span>, test_loss
+<span class="pl-c"><span class="pl-c">#</span> Loss: 6.083</span>
+
+spn.model.unbuild_fast_variables() <span class="pl-c"><span class="pl-c">#</span>pull weights from tensorflow.</span>
+spn.model.save(<span class="pl-s"><span class="pl-pds">"</span>Models/nltcs.spn.txt<span class="pl-pds">"</span></span>)
+</pre></div>
+
+<h4>
+<a id="user-content-combining-training-algorithms" class="anchor" href="#combining-training-algorithms" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Combining training algorithms</h4>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-c"><span class="pl-c">#</span> make an SPN holder</span>
+spn <span class="pl-k">=</span> SPN()
+<span class="pl-c"><span class="pl-c">#</span> include training and testing data</span>
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.ts.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>train<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.valid.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>valid<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>)
+spn.add_data(<span class="pl-s"><span class="pl-pds">'</span>abalone.test.data<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>)
+<span class="pl-c"><span class="pl-c">#</span> create a valid sum product network</span>
+
+sum_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">3</span>, <span class="pl-c1">6</span>)
+prod_branch_factor <span class="pl-k">=</span> (<span class="pl-c1">5</span>, <span class="pl-c1">8</span>)
+variables <span class="pl-k">=</span> <span class="pl-c1">8</span>
+
+<span class="pl-c"><span class="pl-c">#</span>continuous model</span>
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, <span class="pl-v">cont</span><span class="pl-k">=</span><span class="pl-c1">True</span>, <span class="pl-v">classify</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">data</span><span class="pl-k">=</span>spn.data.train)
+
+<span class="pl-c"><span class="pl-c">#</span> start the session</span>
+spn.start_session()
+
+<span class="pl-c"><span class="pl-c">#</span> train</span>
+
+<span class="pl-c"><span class="pl-c">#</span> pick the optimization algorithm</span>
+cccp <span class="pl-k">=</span> <span class="pl-c1">False</span>
+gd <span class="pl-k">=</span> <span class="pl-c1">False</span>
+count <span class="pl-k">=</span> <span class="pl-c1">True</span> 
+
+<span class="pl-c"><span class="pl-c">#</span>large minibatches with a small number at a time</span>
+minibatch_size<span class="pl-k">=</span><span class="pl-c1">1</span>
+
+<span class="pl-c"><span class="pl-c">#</span> other stuff</span>
+epochs <span class="pl-k">=</span> <span class="pl-c1">1</span>
+
+<span class="pl-c"><span class="pl-c">#</span> access the data</span>
+train <span class="pl-k">=</span> spn.data.train
+valid <span class="pl-k">=</span> spn.data.valid
+test <span class="pl-k">=</span> spn.data.test
+
+<span class="pl-c"><span class="pl-c">#</span>train with counting first</span>
+spn.train(epochs, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>valid,<span class="pl-v">cccp</span><span class="pl-k">=</span>cccp, <span class="pl-v">gd</span><span class="pl-k">=</span>gd, <span class="pl-v">count</span><span class="pl-k">=</span>count, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span>minibatch_size)
+<span class="pl-c"><span class="pl-c">#</span>train with gradient descent </span>
+spn.train(<span class="pl-c1">1000</span>, train, <span class="pl-v">valid_data</span><span class="pl-k">=</span>valid, <span class="pl-v">cccp</span><span class="pl-k">=</span>false, <span class="pl-v">gd</span><span class="pl-k">=</span><span class="pl-c1">True</span>, <span class="pl-v">count</span><span class="pl-k">=</span><span class="pl-c1">False</span>, <span class="pl-v">minibatch_size</span><span class="pl-k">=</span><span class="pl-c1">200</span>, <span class="pl-v">patience</span><span class="pl-k">=</span><span class="pl-c1">1</span>)
+
+
+test_loss <span class="pl-k">=</span> spn.evaluate(test)
+<span class="pl-c1">print</span> <span class="pl-s"><span class="pl-pds">'</span>Loss:<span class="pl-pds">'</span></span>, test_loss
+<span class="pl-c"><span class="pl-c">#</span> Loss: 1.89</span>
+</pre></div>
+
+<blockquote>
+<p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p>
+</blockquote>

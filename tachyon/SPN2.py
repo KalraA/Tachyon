@@ -5,18 +5,19 @@ from tachyon.data import *
 
 class SPN:
 	def __init__(self):
-		self.model = None
-		self.data = self.data = Data([])
-		self.loss = []
-		self.val_loss = []
-		self.test_loss = None
-		self.session_on = False
-		self.input_order = []
-		self.classify = False
-		self.continuous = False
-		self.out = 1
+		self.model = None  # model
+		self.data = Data([]) # data holder 
+		self.loss = [] #loss history
+		self.val_loss = [] #validation loss history
+		self.test_loss = None #current test loss
+		self.session_on = False #I don't use this I think
+		self.input_order = [] #what is the order of the variables
+		self.classify = False #classifier?
+		self.continuous = False #continuous?
+		self.out = 1 #output size, non 1 not supported yet
 
-	def reshape(self, data):
+	#reshape data for input
+	def reshape(self, data): 
 		n_data = data
 		a = 2
 		if self.continuous:
@@ -25,28 +26,21 @@ class SPN:
 		n_data = np.reshape(n_data, (len(n_data), n_data.shape[1]*n_data.shape[2]))
 		return n_data
 
-	def make_model_from_file(self, fname, random_weights=False, step=0.003):
-		self.model = Model()
-		self.model.build_model_from_file(fname, random_weights)
-		self.model.compile(step)
-		
-		self.input_order = self.model.input_order
-
-	def make_random_model(self, bfactor, input_size, output=1, step=0.003, cont=True, classify=False, data=[]):
+	def make_random_model(self, bfactor, input_size, output=1, tensorboard_dir="", cont=True, classify=False, data=[], depth=6):
 		self.classify = classify
 		self.continuous = cont
 		self.model = Model()
 		if len(data) > 0:
-			self.model.set_mv(data)
+			self.model.set_mv(data) #set mean and variances of the data
 		self.out = output
-		ctype = 'b'
+		ctype = 'b' # b for binary
 		if cont:
-			ctype = 'c'
-		self.model.build_random_model(bfactor, input_size, output, ctype=ctype, multiclass=classify)
-		self.model.fast_compile(step)
+			ctype = 'c' # c for continuous
+		self.model.build_random_model(bfactor, input_size, output, ctype=ctype, multiclass=classify, depth=6)
+		self.model.fast_compile(tensorboard_dir=tensorboard_dir)
 		self.input_order = self.model.input_order
 
-	def make_fast_model_from_file(self, fname, random_weights=False, step=0.003, cont=True, classify=False):
+	def make_fast_model_from_file(self, fname, random_weights=False, tensorboard_dir="", cont=True, classify=False):
 		self.model = Model()
 		self.classify = classify
 		self.continuous = cont
@@ -54,7 +48,7 @@ class SPN:
 		if cont:
 			ctype = 'c'
 		self.model.build_fast_model(fname, random_weights, ctype=ctype)
-		self.model.fast_compile(step)
+		self.model.fast_compile(tensorboard_dir=tensorboard_dir)
 		self.input_order = self.model.input_order
 
 	def add_data(self, filename, dataset='train', mem=False, cont=False):
@@ -73,7 +67,7 @@ class SPN:
 		self.model.close_session()
 		self.session_on = False
 
-	def predict(self, data, minibatch_size=1000):
+	def predict(self, data, minibatch_size=1000):#doesn't work yet, but should be fixable
 		ms = minibatch_size
 		tot_loss = 0
 		a = 0
@@ -105,13 +99,13 @@ class SPN:
 	def evaluate(self, data, labels=None,summ="", minibatch_size=1000, epoch=0):
 		ms = minibatch_size
 		tot_loss = 0
-		a = 0
-		b = 0
+		a = 0 #start of data for a btach
+		b = 0 #end of data for a batch
 		runs = 1+(len(data)-1)//ms
 		for i in range(runs):
 			print i+1, "/", runs
 			b = min(len(data), a + ms)
-			n_data = data[a:b, :, :]#
+			n_data = data[a:b, :, :] #get data from a to b
 			if self.classify:
                                     #print np.argmax(labels[a:b], axis=1
 				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
@@ -121,7 +115,7 @@ class SPN:
 				break
 			if summ == "":	
 				loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
-			else:
+			else: #record summaries
 				feed_dict[self.model.summ] = summ
 				summary, loss = self.model.session.run([self.model.loss_summary, self.model.loss], feed_dict=feed_dict)
 				self.model.writer.add_summary(summary, epoch*len(data) + b)
@@ -136,24 +130,18 @@ class SPN:
 		print vals
 		return vals;
 
-	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True):
+	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True, dropout=0.0):
 		if data == []:
 			data = self.data.train
-			print data.shape
+			
 		if self.classify:
 			assert labels != []
-		# if (valid):
-		# 	val_loss, val_sum = self.evaluate(self.data.valid.T, 'valid_loss')
-		# 	self.model.writer.add_summary(val_sum, 0)
-		# 	print val_loss
-		# if (test):
-		# 	test_loss, test_sum = self.evaluate(self.data.test.T, 'test_loss')
-		# 	self.model.writer.add_summary(test_sum, 0)
+
 		a = 0
 		valid = len(valid_data) > 0 #validation or not!
 		bad = 0
 		b = 0
-		s = 0
+		s = 0 #summary number
 		val_sum = ""
 		if summ:
 			val_sum = "valid"
@@ -170,10 +158,11 @@ class SPN:
 				print i+1, "/", 1+(len(data)-1)//ms
 				b = min(len(data), a + ms)
 				n_data = data[a:b, :, :]
+				dropout_val = 0.5-(dropout/2)
 				if self.classify:
-					feed_dict = {self.model.conz: [0.745], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+					feed_dict = {self.model.conz: [dropout_val], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
 				else:
-					feed_dict = {self.model.conz: [0.745], self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a), self.model.num2: [[1.0]*self.out]*(b-a)}
+					feed_dict = {self.model.conz: [dropout_val], self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a), self.model.num2: [[1.0]*self.out]*(b-a)}
 				if (a == b):
 					break
 				if cccp:
@@ -182,7 +171,7 @@ class SPN:
 					self.model.apply_count(feed_dict, compute_size=compute_size)
 				if gd:
 					_ = self.model.session.run([self.model.check_op, self.model.opt_val], feed_dict = feed_dict)
-				if not summ or True:
+				if not summ:
 					loss = 0#self.model.session.run([self.model.loss], feed_dict=feed_dict)
 				else:
 					feed_dict[self.model.summ] = "batch_loss"
@@ -207,6 +196,7 @@ class SPN:
 					prev_valid = valid_loss
 
 			np.random.shuffle(data)
+		return history
 			
 
 	def get_size(self):
