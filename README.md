@@ -1,4 +1,8 @@
 
+
+![Tachyon Logo](https://www.dropbox.com/s/64f0vqfsilyfppo/Screen%20Shot%202017-02-05%20at%2010.30.03%20PM.png)
+
+
 Tachyon Documentation
 ===================
 Tachyon is an open source library for sum product networks on GPUs. It's extemely fast and accurate.
@@ -36,7 +40,8 @@ rm spn_models.zip
 cd ../data
 wget https://www.dropbox.com/s/axu6xi6xtida4y0/Dataz.zip
 wget https://www.dropbox.com/s/08aw5j42dcuyp5v/abalone.zip
-unzip *.zip
+unzip Dataz.zip
+unzip abalone.zip
 rm *.zip
 cd ..
 
