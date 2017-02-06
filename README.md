@@ -1,6 +1,6 @@
 
 
-![Tachyon Logo](https://dl.dropboxusercontent.com/u/61478139/Tachyon_SPN/Screen%20Shot%202017-02-05%20at%2010.30.03%20PM.png)
+![Tachyon Logo](https://dl.dropboxusercontent.com/u/61478139/Tachyon_SPN/Screen%20Shot%202017-02-05%20at%2010.59.21%20PM.png)
 
 
 Tachyon Documentation
