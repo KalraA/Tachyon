@@ -1,7 +1,7 @@
 
-SPN-Z Documentation
+Tachyon Documentation
 ===================
-SPN-Z is an open source library for sum product networks on GPUs. It's extemely fast and accurate.
+Tachyon is an open source library for sum product networks on GPUs. It's extemely fast and accurate.
 
 ### Table of contents
 
@@ -40,12 +40,14 @@ cd ..
 Getting started is as easy as the following code:
 
 ```python
+from tachyon.SPN2 import SPN
+
 # make an SPN holder
 spn = SPN()
 # include training and testing data
-spn.add_data('nltcs.ts.data', 'train', cont=False)
-spn.add_data('nltcs.valid.data', 'valid', cont=False)
-spn.add_data('nltcs.test.data', 'test', cont=False)
+spn.add_data('data/nltcs.ts.data', 'train', cont=False)
+spn.add_data('data/nltcs.valid.data', 'valid', cont=False)
+spn.add_data('data/nltcs.test.data', 'test', cont=False)
 # create a valid sum product network
 
 sum_branch_factor = (3, 6)
@@ -237,12 +239,14 @@ These are different ways of using the library.
 #### Offline Learning
 
 ```python
+from tachyon.SPN2 import SPN
+
 # make an SPN holder
 spn = SPN()
 # include training and testing data
-spn.add_data('nltcs.ts.data', 'train', cont=False)
-spn.add_data('nltcs.valid.data', 'valid', cont=False)
-spn.add_data('nltcs.test.data', 'test', cont=False)
+spn.add_data('data/nltcs.ts.data', 'train', cont=False)
+spn.add_data('data/nltcs.valid.data', 'valid', cont=False)
+spn.add_data('data/nltcs.test.data', 'test', cont=False)
 # create a valid sum product network
 
 sum_branch_factor = (3, 6)
@@ -286,12 +290,14 @@ print 'Loss:', test_loss
 #### Online Learning
 
 ```python
+from tachyon.SPN2 import SPN
+
 # make an SPN holder
 spn = SPN()
 # include training and testing data
-spn.add_data('abalone.ts.data', 'train', cont=True)
-spn.add_data('abalone.valid.data', 'valid', cont=True)
-spn.add_data('abalone.test.data', 'test', cont=True)
+spn.add_data('data/abalone.ts.data', 'train', cont=False)
+spn.add_data('data/abalone.valid.data', 'valid', cont=False)
+spn.add_data('data/abalone.test.data', 'test', cont=False)
 # create a valid sum product network
 
 sum_branch_factor = (3, 6)
@@ -333,17 +339,19 @@ print 'Loss:', test_loss
 #### Counting Structure Learning
 
 ```python
+from tachyon.SPN2 import SPN
+
 # make an SPN holder
 spn = SPN()
 # include training and testing data
-spn.add_data('nltcs.ts.data', 'train', cont=False)
-spn.add_data('nltcs.valid.data', 'valid', cont=False)
-spn.add_data('nltcs.test.data', 'test', cont=False)
+spn.add_data('data/nltcs.ts.data', 'train', cont=False)
+spn.add_data('data/nltcs.valid.data', 'valid', cont=False)
+spn.add_data('data/nltcs.test.data', 'test', cont=False)
 # create a valid sum product network
 
 sum_branch_factor = (3, 6)
 prod_branch_factor = (5, 8)
-variables = 8
+variables = 16
 
 #binary model
 spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, cont=False, classify=False, data=spn.data.train)
@@ -398,13 +406,15 @@ print "Loss:", spn2.evaluate(test)
 #### Datasets that don't fit into memory
 
 ```python
+from tachyon.SPN2 import SPN
+
 # make an SPN holder
 spn = SPN()
 # include training and testing data
 #let's assume nltcs is split into 2 datasets
 #nltcs.ts1.data, nltcs.ts2.data
-spn.add_data('abalone.valid.data', 'valid', cont=False)
-spn.add_data('abalone.test.data', 'test', cont=False)
+spn.add_data('data/nltcs.valid.data', 'valid', cont=False)
+spn.add_data('data/nltcs.test.data', 'test', cont=False)
 # create a valid sum product network
 
 sum_branch_factor = (3, 6)
@@ -412,13 +422,13 @@ prod_branch_factor = (5, 8)
 variables = 8
 
 #binary model
-spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, cont=False, classify=False, data=spn.data.train)
+spn.make_random_model((prod_branch_factor, sum_branch_factor), variables, cont=False, classify=False, data=spn.data.train, tensorboard_dir="./logs")
 
 # start the session
 spn.start_session()
 
 # train
-filenames = ['nltcs.ts1.data', 'nltcs.ts2.data']
+filenames = ['data/nltcs.ts1.data', 'data/nltcs.ts2.data']
 # pick the optimization algorithm
 cccp = False
 gd = True
@@ -453,12 +463,14 @@ spn.model.save("Models/nltcs.spn.txt")
 #### Combining training algorithms
 
 ```python
+from tachyon.SPN2 import SPN
+
 # make an SPN holder
 spn = SPN()
 # include training and testing data
-spn.add_data('abalone.ts.data', 'train', cont=True)
-spn.add_data('abalone.valid.data', 'valid', cont=True)
-spn.add_data('abalone.test.data', 'test', cont=True)
+spn.add_data('data/abalone.ts.data', 'train', cont=True)
+spn.add_data('data/abalone.valid.data', 'valid', cont=True)
+spn.add_data('data/abalone.test.data', 'test', cont=True)
 # create a valid sum product network
 
 sum_branch_factor = (3, 6)
@@ -492,7 +504,7 @@ test = spn.data.test
 #train with counting first
 spn.train(epochs, train, valid_data=valid,cccp=cccp, gd=gd, count=count, minibatch_size=minibatch_size)
 #train with gradient descent 
-spn.train(1000, train, valid_data=valid, cccp=false, gd=True, count=False, minibatch_size=200, patience=1)
+spn.train(1000, train, valid_data=valid, cccp=false, gd=True, count=False, minibatch_size=200, patience=1, dropout=0.2) # dropout kinda sucks, but it is supported!
 
 
 test_loss = spn.evaluate(test)
