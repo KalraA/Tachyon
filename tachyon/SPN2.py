@@ -117,7 +117,7 @@ class SPN:
 				loss = self.model.session.run([self.model.loss], feed_dict=feed_dict)
 			else: #record summaries
 				feed_dict[self.model.summ] = summ
-				summary, loss = self.model.session.run([self.model.loss_summary, self.model.loss], feed_dict=feed_dict)
+				_, summary, loss = self.model.session.run([self.model.check_op, self.model.loss_summary, self.model.loss], feed_dict=feed_dict)
 				self.model.writer.add_summary(summary, epoch*len(data) + b)
 			tot_loss += (b-a)*np.sum(loss)
 			a += ms
@@ -130,7 +130,7 @@ class SPN:
 		print vals
 		return vals;
 
-	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=True, dropout=0.0):
+	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=False, dropout=0.0):
 		if data == []:
 			data = self.data.train
 			
@@ -166,6 +166,7 @@ class SPN:
 				if (a == b):
 					break
 				if cccp:
+					print "yo"
 					self.model.apply_cccp(feed_dict, compute_size=compute_size)
 				if count:
 					self.model.apply_count(feed_dict, compute_size=compute_size)
@@ -184,7 +185,7 @@ class SPN:
 			print tot_loss
 			history["train_loss"].append(tot_loss)
 			if valid:
-				valid_loss = self.evaluate(valid_data, summ="valid", minibatch_size=compute_size ,epoch=e+1)
+				valid_loss = self.evaluate(valid_data, summ=val_sum, minibatch_size=compute_size ,epoch=e+1)
 				history["valid_loss"] = valid_loss
 				print valid_loss
 				if valid_loss > prev_valid:

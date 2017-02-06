@@ -42,7 +42,7 @@ def generate_children(nodes, curr_node, scope, bf, depth=0, max_depth=10, ctype=
         for c in xrange(len(scopes)):
             child = PrdNode(str(curr_id + 1))
             curr_node.children.append(str(curr_id + 1))
-            curr_node.weights.append(random.random() - 0.5)
+            curr_node.weights.append(0.75 - random.random()*0.5)
             child.parents.append(curr_node.id)
             nodes, curr_id = generate_children(nodes, child, scopes[c], bf, depth+1, max_depth, ctype=ctype)
         norm_factor = sum(curr_node.weights)

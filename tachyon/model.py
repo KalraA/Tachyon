@@ -211,7 +211,7 @@ class Model:
 
     def normalize_weights(self):
         weights = filter(lambda x: x != None, self.norm_weights)
-        new_weights = self.session.run(weights);
+        new_weights = self.session.run(weights, feed_dict={self.conz: [0.8]});
         old_weights = filter(lambda x: x.get_shape()[0] > 0, self.weights)
         for w, n in zip(old_weights, new_weights):
            # print w.get_shape()
@@ -322,7 +322,7 @@ class Model:
             else:
                 self.loss = -tf.reduce_mean(self.output)
             self.loss_summary = tf.scalar_summary(self.summ, self.loss)
-        self.opt_val = self.optimizer(0.001).minimize(self.loss)\
+        self.opt_val = self.optimizer(0.001).minimize(self.loss)
         self.computations = computations
 
     def cccp(self):
@@ -356,8 +356,6 @@ class Model:
                 gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
                 update = self.weights[0]*tf.exp(gathered - self.computations[-1])*self.counting[0]+0.000001
                 updates.append(tf.reduce_sum(update, reduction_indices=0))
-            else:
-                raise NotImplementedError()#not supporting continuous variables
 
             self.cccp_updates = updates
 
@@ -367,7 +365,7 @@ class Model:
         for i in range(1+(len(data)-1)//compute_size): #do it in small computations and keep track of the updates
             feed_dict[self.input] = data[i*compute_size:min((i+1)*compute_size, len(data))]
             feed_dict[self.num] = feed_dict[self.num][:-i*compute_size+min((i+1)*compute_size, len(data))]
-            update = self.session.run(self.cccp_updates, feed_dict=feed_dict)
+            _, update = self.session.run([self.check_op, self.cccp_updates], feed_dict=feed_dict)
             if len(updates) == 0:
                 updates = update
             else:
@@ -461,7 +459,6 @@ class Model:
         # print updates
         a=0
         weights = filter(lambda x: x.get_shape()[0] > 0, self.weights)
-        print [np.sum(x) for x in weights]
         updates = list(reversed(updates))
         for i in range(len(weights)):
             if self.node_layers[0][0].t == 'c' and i == 0:
