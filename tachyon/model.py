@@ -48,7 +48,7 @@ class Model:
         self.optimizer = optimizer
         self.opt_val = None #actual value to call from session.run
         self.session = None
-        self.initalizer = tf.initialize_all_variables
+        self.initializer = tf.global_variables_initializer
         self.shuffle = None; #shuffle done between each layer to match nodes
         self.reverse_shuffle = None; #unshuffling them for backward pass
         self.inds = None; #indicies for segmented sum 
@@ -90,7 +90,7 @@ class Model:
         self.build_variables()
         self.build_forward_graph()
         self.start_session()
-        self.writer = tf.train.SummaryWriter('logs/minibatch_range3', self.session.graph_def)
+        self.writer = tf.train.FileWriter('logs/minibatch_range3', self.session.graph_def)
         self.get_normal_value()
         self.close_session()
 
@@ -242,29 +242,29 @@ class Model:
             for L in range(len(self.weights)):
                 if L != 0:
                     drop = tf.round(tf.random_uniform(self.weights[L].get_shape(), self.conz, 1.0, dtype=tf.float64))
-                    weights.append(tf.add(tf.nn.relu(tf.sub(self.weights[L]*drop, n)), n))
+                    weights.append(tf.add(tf.nn.relu(tf.subtract(self.weights[L]*drop, n)), n))
                 else:
-                    weights.append(tf.add(tf.nn.relu(tf.sub(self.weights[L], n)), n))
+                    weights.append(tf.add(tf.nn.relu(tf.subtract(self.weights[L], n)), n))
 
         with tf.name_scope('nomralization'):
             self.sum_of_weights = [tf.segment_sum(x, y) if x.get_shape()[0] > 0 else None for x, y in zip(weights, self.inds)]
             sum_of_weights = self.sum_of_weights
-            self.norm_weights = [tf.div(x, tf.gather(y, z)) if x.get_shape()[0] > 0 else None for x, y, z in zip(weights, self.sum_of_weights, self.inds)]
+            self.norm_weights = [tf.divide(x, tf.gather(y, z)) if x.get_shape()[0] > 0 else None for x, y, z in zip(weights, self.sum_of_weights, self.inds)]
         
         with tf.name_scope('LEAFS_' + str(len(self.input_order))):
             input_gather = tf.reshape(tf.transpose(tf.gather(tf.transpose(self.input, (1, 0, 2)), self.input_swap), (1, 0, 2)), shape=(-1, len(self.input_order)*bob))
             self.counting.append(input_gather)
             if self.node_layers[0][0].t == 'b': #if contiuous
-               input_computation_w = tf.mul(input_gather, weights[0])
+               input_computation_w = tf.multiply(input_gather, weights[0])
                input_computation_s = tf.transpose(tf.segment_sum(tf.transpose(input_computation_w), self.inds[0]))
-               input_computation_n = tf.log(tf.div(input_computation_s, sum_of_weights[0]))
+               input_computation_n = tf.log(tf.divide(input_computation_s, sum_of_weights[0]))
                computations.append(input_computation_n)
             else:
                pi = tf.constant(np.pi, tf.float64)
                mus = self.cont[0]
                sigs = tf.nn.relu(self.cont[1] - 0.01) + 0.01 #sigma can't be smaller than 0.01
                #gassian formula
-               input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs) + 0.000001
+               input_computation_g = tf.divide(tf.exp(tf.negative(tf.divide(tf.square(input_gather - mus), 2*tf.multiply(sigs, sigs)))), tf.sqrt(2*pi)*sigs) + 0.000001
                input_computation_n = tf.log(input_computation_g)
                computations.append(input_computation_n)
 
@@ -296,19 +296,19 @@ class Model:
                     back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[L]))
 
                     #sub the max at each node
-                    current_computation = tf.sub(current_computation, back_maxes)
+                    current_computation = tf.subtract(current_computation, back_maxes)
                     #get out of log domain
                     current_computation = tf.exp(current_computation)
                     #multiply by weights
-                    current_computation = tf.mul(current_computation, weights[L])
+                    current_computation = tf.multiply(current_computation, weights[L])
                     #compute sum node
                     current_computation = tf.transpose(tf.segment_sum(tf.transpose(current_computation), self.inds[L]))
                     #normalize
-                    current_computation = tf.div(current_computation, sum_of_weights[L])
+                    current_computation = tf.divide(current_computation, sum_of_weights[L])
                     #re-add the maxes that we took out after entering log domain
                     current_computation = tf.add(tf.log(current_computation), maxes)
                     #concatenate with inputs for the next layer
-                    current_computation = tf.concat(1, [current_computation, input_splits[L]])
+                    current_computation = tf.concat([current_computation, input_splits[L]], 1)
                     #shuffle so that next node is ready
                     current_computation = tf.transpose(tf.gather(tf.transpose(current_computation), self.shuffle[L]))
                
@@ -318,10 +318,10 @@ class Model:
         with tf.name_scope('loss'):
             if self.multiclass:
                 self.labels = tf.placeholder(shape=(None, len(self.node_layers[-1])), dtype=tf.float64)
-                self.loss = -tf.reduce_mean(tf.mul(self.output, 0.1*(self.labels-1)+self.labels))
+                self.loss = -tf.reduce_mean(tf.multiply(self.output, 0.1*(self.labels-1)+self.labels))
             else:
                 self.loss = -tf.reduce_mean(self.output)
-            self.loss_summary = tf.scalar_summary(self.summ, self.loss)
+            self.loss_summary = tf.summary.scalar("batch_loss", self.loss)
         self.opt_val = self.optimizer(0.001).minimize(self.loss)
         self.computations = computations
 
@@ -348,14 +348,14 @@ class Model:
                     #create updates and derivatives
                     update = self.weights[L]*tf.exp(curr - self.computations[-1] + self.computations[i])
                     curr = curr + tf.log(self.weights[L])
-                    updates.append(tf.reduce_sum(update, reduction_indices=0))
+                    updates.append(tf.reduce_sum(update, axis=0))
 
 
-            inputs = tf.concat(1, [curr] + splits, name="lolface");
+            inputs = tf.concat([curr] + splits, 1, name="lolface");
             if self.node_layers[0][0].t == 'b':
                 gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
                 update = self.weights[0]*tf.exp(gathered - self.computations[-1])*self.counting[0]+0.000001
-                updates.append(tf.reduce_sum(update, reduction_indices=0))
+                updates.append(tf.reduce_sum(update, axis=0))
 
             self.cccp_updates = updates
 
@@ -399,9 +399,9 @@ class Model:
                 if c == 0 and self.node_layers[0][0].t == 'c':
                     counts = self.counting[c]*0+1
                 else:
-                    maxes = tf.mul(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
+                    maxes = tf.multiply(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
                     back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[c*2]))
-                    counts = tf.nn.relu(tf.round(tf.div(back_maxes, self.counting[c])))
+                    counts = tf.nn.relu(tf.round(tf.divide(back_maxes, self.counting[c])))
                 maxed_out.append(counts)
             updates = []
             splits = []
@@ -421,21 +421,21 @@ class Model:
                         curr, split = curr[:, :-self.input_layers[L]], curr[:, -self.input_layers[L]:]
                         splits = [split] + splits;
                     curr = tf.transpose(tf.gather(tf.transpose(curr), self.inds[L], name="mysumgather"))
-                    curr = tf.mul(curr, maxed_out[L//2])
-                    updates.append(tf.reduce_sum(curr, reduction_indices=0))
+                    curr = tf.multiply(curr, maxed_out[L//2])
+                    updates.append(tf.reduce_sum(curr, axis=0))
             
 
-            inputs = tf.concat(1, [curr] + splits, name="lolface");
+            inputs = tf.concat([curr] + splits, 1, name="lolface");
             if self.node_layers[0][0].t == 'b':
                 gathered = tf.transpose(tf.gather(tf.transpose(inputs), self.inds[0]))
-                updates.append(tf.reduce_sum(tf.mul(gathered, self.counting[0]), reduction_indices=0))
+                updates.append(tf.reduce_sum(tf.multiply(gathered, self.counting[0]), axis=0))
             else:
-                important_inputs = tf.reduce_sum(inputs*self.counting[0], reduction_indices=0)
-                total = self.cont[2]+tf.reduce_sum(inputs, reduction_indices=0)
+                important_inputs = tf.reduce_sum(inputs*self.counting[0], axis=0)
+                total = self.cont[2]+tf.reduce_sum(inputs, axis=0)
                 new_mu = (important_inputs + self.cont[0]*self.cont[2])/total
                 mu_diff = new_mu - self.cont[0]
                 other_diff = self.counting[0] - self.cont[0]
-                new_sig = tf.sqrt((self.cont[1]*self.cont[1]*self.cont[2] + tf.reduce_sum(other_diff*other_diff*inputs, reduction_indices=0))/total - mu_diff*mu_diff)
+                new_sig = tf.sqrt((self.cont[1]*self.cont[1]*self.cont[2] + tf.reduce_sum(other_diff*other_diff*inputs, axis=0))/total - mu_diff*mu_diff)
                 new_sums = total
                 
                 updates.append(new_mu)
@@ -480,7 +480,7 @@ class Model:
         self.out_size = len(self.node_layers[-1])
         self.start_session()
         if tensorboard_dir:
-            self.writer = tf.train.SummaryWriter(tensorboard_dir, self.session.graph)
+            self.writer = tf.train.FileWriter(tensorboard_dir, self.session.graph)
         self.close_session()
     def start_session(self):
         assert self.session == None
@@ -488,7 +488,7 @@ class Model:
 	config.gpu_options.allocator_type = 'BFC'
 	config.gpu_options.allow_growth=True
         self.session = tf.Session(config=config)
-        self.session.run(self.initalizer())
+        self.session.run(self.initializer())
         return self.session
 
     def close_session(self):
