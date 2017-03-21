@@ -24,6 +24,7 @@ class Model:
         self.writer = None;
         self.input = None #input tensor
         self.output = None #output tensor
+        self.cond = None #conditional queries support (Joy, Mar 21st 2017)
         self.sparse_tensors = [] #all sparse tensors to be used in graph
         self.variables = [] #all variables
         self.layer_computations = [] #all mid computations in graph
@@ -230,6 +231,9 @@ class Model:
                                         shape=(None, max(self.input_order)+1, 
                                                bob),
                                         name='Input')
+            self.cond = tf.placeholder(dtype=tf.float64,
+                                       shape=(None, max(self.input_order)+1),
+                                       name='Cond')
         # self.input = tf.placeholder(dtype=tf.float64, 
         #                                  shape=(len(self.input_order)*2), name='Input')
         #the input to be appended to each layer
@@ -253,12 +257,12 @@ class Model:
         
         with tf.name_scope('LEAFS_' + str(len(self.input_order))):
             input_gather = tf.reshape(tf.transpose(tf.gather(tf.transpose(self.input, (1, 0, 2)), self.input_swap), (1, 0, 2)), shape=(-1, len(self.input_order)*bob))
+            cond_gather = tf.transpose(tf.gather(tf.transpose(self.cond), self.input_swap))
             self.counting.append(input_gather)
             if self.node_layers[0][0].t == 'b': #if contiuous
                input_computation_w = tf.mul(input_gather, weights[0])
                input_computation_s = tf.transpose(tf.segment_sum(tf.transpose(input_computation_w), self.inds[0]))
                input_computation_n = tf.log(tf.div(input_computation_s, sum_of_weights[0]))
-               computations.append(input_computation_n)
             else:
                pi = tf.constant(np.pi, tf.float64)
                mus = self.cont[0]
@@ -266,7 +270,8 @@ class Model:
                #gassian formula
                input_computation_g = tf.div(tf.exp(tf.neg(tf.div(tf.square(input_gather - mus), 2*tf.mul(sigs, sigs)))), tf.sqrt(2*pi)*sigs) + 0.000001
                input_computation_n = tf.log(input_computation_g)
-               computations.append(input_computation_n)
+            input_computation_n = cond_gather * input_computation_n
+            computations.append(input_computation_n)
 
         
         #split the input computation and figure out which one goes in each layer
