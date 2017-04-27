@@ -399,9 +399,12 @@ class Model:
                 if c == 0 and self.node_layers[0][0].t == 'c':
                     counts = self.counting[c]*0+1
                 else:
-                    maxes = tf.multiply(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
+                    #maxes = tf.multiply(tf.transpose(tf.segment_max(tf.transpose(self.counting[c]), self.inds[c*2])), val)
+                    maxes = tf.transpose(tf.segment_sum(tf.transpose(tf.exp(self.counting[c])), self.inds[c*2]))
                     back_maxes = tf.transpose(tf.gather(tf.transpose(maxes), self.inds[c*2]))
-                    counts = tf.nn.relu(tf.round(tf.divide(back_maxes, self.counting[c])))
+                    #counts = tf.nn.relu(tf.round(tf.divide(back_maxes, self.counting[c])))
+                    counts = tf.Print(tf.nn.relu(tf.divide(tf.exp(self.counting[c]), back_maxes)), [maxes, back_maxes, tf.exp(self.counting[c])])
+
                 maxed_out.append(counts)
             updates = []
             splits = []
