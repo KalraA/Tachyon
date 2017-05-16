@@ -96,7 +96,7 @@ class SPN:
 		return tot_lossmodel.session.run(self.model.output, feed_dict=feed_dict)
 		return output
 
-	def evaluate(self, data, labels=None,summ="", minibatch_size=1000, epoch=0):
+	def evaluate(self, data, labels=None,summ="", minibatch_size=1000, epoch=0, cond_probs=None):
 		ms = minibatch_size
 		tot_loss = 0
 		a = 0 #start of data for a btach
@@ -106,11 +106,15 @@ class SPN:
 			print i+1, "/", runs
 			b = min(len(data), a + ms)
 			n_data = data[a:b, :, :] #get data from a to b
+			if cond_probs is not None:
+				cond_inputs = cond_probs[a:b]
+			else:
+				cond_inputs = np.ones(n_data.shape[:2])
 			if self.classify:
                                     #print np.argmax(labels[a:b], axis=1
-				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b], self.model.cond: cond_inputs}
 			else:
-				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a)}
+				feed_dict = {self.model.conz: [0.9], self.model.input: n_data, self.model.num: [[1.0]*self.out]*(b-a), self.model.cond: cond_inputs}
 			if (a == b):
 				break
 			if summ == "":	
@@ -123,12 +127,6 @@ class SPN:
 			a += ms
 		tot_loss /= float(len(data))
 		return tot_loss
-
-	def test(self, inp):
-		feed_dict = {self.model.input: inp}
-		vals = self.model.session.run(self.model.computations, feed_dict=feed_dict)
-		print vals
-		return vals;
 
 	def train(self, epochs, data=[], labels=[], minibatch_size=512, valid_data=[], gd=True, compute_size=1000, count=False, cccp=False, patience=100, summ=False, dropout=0.0):
 		if data == []:
@@ -160,9 +158,9 @@ class SPN:
 				n_data = data[a:b, :, :]
 				dropout_val = 0.5-(dropout/2)
 				if self.classify:
-					feed_dict = {self.model.conz: [dropout_val], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b]}
+					feed_dict = {self.model.conz: [dropout_val], self.model.input: n_data, self.model.labels: labels[a:b], self.model.num: labels[a:b], self.model.cond: np.ones(n_data.shape[:2])}
 				else:
-					feed_dict = {self.model.conz: [dropout_val], self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a), self.model.num2: [[1.0]*self.out]*(b-a)}
+					feed_dict = {self.model.conz: [dropout_val], self.model.input: n_data, self.model.num: [[0.0]*self.out]*(b-a), self.model.num2: [[1.0]*self.out]*(b-a), self.model.cond: np.ones(n_data.shape[:2])}
 				if (a == b):
 					break
 				if cccp:
@@ -205,3 +203,4 @@ class SPN:
 	
 	def get_weights(self):
 		return self.model.num_weights
+
